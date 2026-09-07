@@ -302,6 +302,10 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 		case "down", "j":
 			m.infoScroll++
 			m.infoMaybeAdjustScroll()
+		case "home", "g":
+			m.infoScroll = 0
+		default:
+			return m.transportKey(msg)
 		}
 		return nil
 	}
@@ -339,6 +343,8 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 			}
 		case "ctrl+x":
 			m.toggleExpandedView()
+		default:
+			return m.transportKey(msg)
 		}
 		return nil
 	}
@@ -1052,34 +1058,12 @@ func (m *Model) handleFullVisualizerKey(msg tea.KeyPressMsg) tea.Cmd {
 		return m.quit()
 	case "esc", "backspace", "b", "V":
 		m.exitFullVisualizer()
-	case "space":
-		cmd := m.togglePlayPause()
-		m.notifyPlayback()
-		return cmd
-	case ">", ".":
-		refresh := m.scrobbleCurrent()
-		cmd := m.nextTrack()
-		m.notifyPlayback()
-		return tea.Batch(refresh, cmd)
-	case "<", ",":
-		refresh := m.scrobbleCurrent()
-		cmd := m.prevTrack()
-		m.notifyPlayback()
-		return tea.Batch(refresh, cmd)
+	// Nothing here is a list, so the bare arrows seek; everything else in the
+	// transport is shared with the overlays.
 	case "left":
 		return m.doSeek(-5 * time.Second)
-	case "shift+left":
-		return m.doSeek(-m.seekStepLarge)
 	case "right":
 		return m.doSeek(5 * time.Second)
-	case "shift+right":
-		return m.doSeek(m.seekStepLarge)
-	case "+", "=":
-		m.player.SetVolume(m.player.Volume() + 1)
-		m.notifyPlayback()
-	case "-":
-		m.player.SetVolume(m.player.Volume() - 1)
-		m.notifyPlayback()
 	case "v":
 		m.vis.CycleMode()
 		m.vis.RequestRefresh()
@@ -1091,6 +1075,9 @@ func (m *Model) handleFullVisualizerKey(msg tea.KeyPressMsg) tea.Cmd {
 	case "ctrl+k", "?":
 		m.exitFullVisualizer()
 		m.openKeymap()
+
+	default:
+		return m.transportKey(msg)
 	}
 	return nil
 }
@@ -1714,7 +1701,7 @@ func (m *Model) handleNetSearchResultsKey(msg tea.KeyPressMsg) tea.Cmd {
 		m.netSearch.cursor = 0
 		m.netSearch.scroll = 0
 		m.netSearch.err = ""
-	case "ctrl+u":
+	case "ctrl+u", "pgup":
 		step := m.netSearchResultsVisible()
 		if step < 1 {
 			step = 1
@@ -1725,7 +1712,7 @@ func (m *Model) handleNetSearchResultsKey(msg tea.KeyPressMsg) tea.Cmd {
 			m.netSearch.cursor = 0
 		}
 		m.netSearchResultsMaybeAdjustScroll(m.netSearchResultsVisible())
-	case "ctrl+d":
+	case "ctrl+d", "pgdown":
 		step := m.netSearchResultsVisible()
 		if step < 1 {
 			step = 1
@@ -1735,6 +1722,15 @@ func (m *Model) handleNetSearchResultsKey(msg tea.KeyPressMsg) tea.Cmd {
 			m.netSearch.cursor = max(0, count-1)
 		}
 		m.netSearchResultsMaybeAdjustScroll(m.netSearchResultsVisible())
+	case "home", "g":
+		m.netSearch.cursor = 0
+		m.netSearchResultsMaybeAdjustScroll(m.netSearchResultsVisible())
+	case "end", "G":
+		m.netSearch.cursor = max(0, count-1)
+		m.netSearchResultsMaybeAdjustScroll(m.netSearchResultsVisible())
+
+	default:
+		return m.transportKey(msg)
 	}
 	return nil
 }
@@ -1975,6 +1971,9 @@ func (m *Model) handlePlMgrListKey(msg tea.KeyPressMsg) tea.Cmd {
 			return nil
 		}
 		m.plManager.visible = false
+
+	default:
+		return m.transportKey(msg)
 	}
 	return nil
 }
@@ -2087,9 +2086,11 @@ func (m *Model) handlePlMgrTracksKey(msg tea.KeyPressMsg) tea.Cmd {
 			m.plManager.cursor = 0
 		}
 		m.plMgrTracksMaybeAdjustScroll(m.plMgrTracksVisible())
-	case "[":
+	// Reordering answers to the same keys as the queue and Up Next, on top of
+	// the [ ] pair this screen already had.
+	case "[", "shift+up", "K":
 		m.plMgrMoveTrack(-1)
-	case "]":
+	case "]", "shift+down", "J":
 		m.plMgrMoveTrack(1)
 	case "ctrl+x":
 		m.toggleExpandedView()
@@ -2224,6 +2225,9 @@ func (m *Model) handlePlMgrTracksKey(msg tea.KeyPressMsg) tea.Cmd {
 			}
 		}
 		m.plManager.confirmDel = false
+
+	default:
+		return m.transportKey(msg)
 	}
 	return nil
 }
@@ -2355,6 +2359,9 @@ func (m *Model) handlePlMgrDirsKey(msg tea.KeyPressMsg) tea.Cmd {
 	case "esc", "backspace", "h", "left":
 		// Back to the tracks screen; reload tracks so dir changes are shown.
 		m.plMgrEnterTrackList(m.plManager.selPlaylist)
+
+	default:
+		return m.transportKey(msg)
 	}
 	return nil
 }
@@ -2903,6 +2910,9 @@ func (m *Model) handleThemeKey(msg tea.KeyPressMsg) tea.Cmd {
 
 	case "esc", "q", "t":
 		m.themePickerCancel()
+
+	default:
+		return m.transportKey(msg)
 	}
 	return nil
 }
@@ -3024,6 +3034,9 @@ func (m *Model) handleVisPickerKey(msg tea.KeyPressMsg) tea.Cmd {
 
 	case "esc", "q", "ctrl+v":
 		m.visPickerCancel()
+
+	default:
+		return m.transportKey(msg)
 	}
 	return nil
 }
@@ -3082,7 +3095,22 @@ func (m *Model) handleQueueKey(msg tea.KeyPressMsg) tea.Cmd {
 			m.queue.cursor = 0
 		}
 		m.normalizeQueueOverlay()
-	case "shift+up":
+	case "pgup", "ctrl+u":
+		m.queue.cursor = max(0, m.queue.cursor-m.queueVisible())
+		m.normalizeQueueOverlay()
+	case "pgdown", "ctrl+d":
+		m.queue.cursor = min(max(0, qLen-1), m.queue.cursor+m.queueVisible())
+		m.normalizeQueueOverlay()
+	case "home", "g":
+		m.queue.cursor = 0
+		m.normalizeQueueOverlay()
+	case "end", "G":
+		m.queue.cursor = max(0, qLen-1)
+		m.normalizeQueueOverlay()
+
+	// Shift+J/K mirror Shift+Down/Up so reordering follows the same hands as
+	// j/k navigation.
+	case "shift+up", "K":
 		moved := false
 		if m.queue.cursor > 0 {
 			if m.playlist.MoveQueue(m.queue.cursor, m.queue.cursor-1) {
@@ -3094,7 +3122,7 @@ func (m *Model) handleQueueKey(msg tea.KeyPressMsg) tea.Cmd {
 		if moved {
 			return m.rearmPreload()
 		}
-	case "shift+down":
+	case "shift+down", "J":
 		moved := false
 		if m.queue.cursor < qLen-1 {
 			if m.playlist.MoveQueue(m.queue.cursor, m.queue.cursor+1) {
@@ -3133,6 +3161,12 @@ func (m *Model) handleQueueKey(msg tea.KeyPressMsg) tea.Cmd {
 		}
 	case "esc", "A":
 		m.queue.visible = false
+
+	default:
+		// Skipping a track can consume the queue, so re-clamp afterwards.
+		cmd := m.transportKey(msg)
+		m.normalizeQueueOverlay()
+		return cmd
 	}
 	return nil
 }
@@ -3170,8 +3204,23 @@ func (m *Model) handleDeviceKey(msg tea.KeyPressMsg) tea.Cmd {
 			m.devicePicker.visible = false
 			return switchDeviceCmd(dev.Name)
 		}
+	case "pgup", "ctrl+u":
+		m.devicePicker.cursor = max(0, m.devicePicker.cursor-m.devicePickerVisible())
+		m.deviceMaybeAdjustScroll(m.devicePickerVisible())
+	case "pgdown", "ctrl+d":
+		m.devicePicker.cursor = min(max(0, len(m.devicePicker.devices)-1), m.devicePicker.cursor+m.devicePickerVisible())
+		m.deviceMaybeAdjustScroll(m.devicePickerVisible())
+	case "home", "g":
+		m.devicePicker.cursor = 0
+		m.deviceMaybeAdjustScroll(m.devicePickerVisible())
+	case "end", "G":
+		m.devicePicker.cursor = max(0, len(m.devicePicker.devices)-1)
+		m.deviceMaybeAdjustScroll(m.devicePickerVisible())
 	case "esc", "d":
 		m.devicePicker.visible = false
+
+	default:
+		return m.transportKey(msg)
 	}
 	return nil
 }

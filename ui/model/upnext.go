@@ -180,13 +180,15 @@ func (m *Model) handleUpNextKey(msg tea.KeyPressMsg) tea.Cmd {
 		m.notifyPlayback()
 		return cmd
 
-	case "shift+up":
+	// Shift+J/K mirror Shift+Down/Up so reordering follows the same hands as
+	// j/k navigation.
+	case "shift+up", "K":
 		if idx, ok := m.playlist.MoveUpcoming(m.upNext.cursor, -1, upNextFetchCap); ok {
 			m.upNext.cursor = idx
 		} else {
 			m.status.Show("Can't move past the queue boundary", statusTTLShort)
 		}
-	case "shift+down":
+	case "shift+down", "J":
 		if idx, ok := m.playlist.MoveUpcoming(m.upNext.cursor, 1, upNextFetchCap); ok {
 			m.upNext.cursor = idx
 		} else {
@@ -210,6 +212,13 @@ func (m *Model) handleUpNextKey(msg tea.KeyPressMsg) tea.Cmd {
 		if entry, ok := m.upNextEntryAt(m.upNext.cursor); ok {
 			m.removeTrackFromPlaylist(entry.TrackIndex)
 		}
+
+	default:
+		// Skipping a track from here reshapes the very list being shown, so
+		// the cursor still has to be re-clamped afterwards.
+		cmd := m.transportKey(msg)
+		m.normalizeUpNextOverlay()
+		return cmd
 	}
 
 	m.normalizeUpNextOverlay()

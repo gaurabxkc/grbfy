@@ -282,6 +282,7 @@ func (m *Model) handleFileBrowserKey(msg tea.KeyPressMsg) tea.Cmd {
 	}
 
 	var cd string
+	var cmd tea.Cmd
 	switch msg.String() {
 	case "ctrl+c":
 		m.fileBrowser.visible = false
@@ -463,6 +464,11 @@ func (m *Model) handleFileBrowserKey(msg tea.KeyPressMsg) tea.Cmd {
 		if m.fileBrowser.targetPlaylist != "" {
 			m.fbAddDirSource()
 		}
+
+	default:
+		// Space and `.` are the browser's own above, so only keys it ignores
+		// reach the transport.
+		cmd = m.transportKey(msg)
 	}
 
 	// Change drive letter on Windows by pressing alt+[c..z]
@@ -474,7 +480,7 @@ func (m *Model) handleFileBrowserKey(msg tea.KeyPressMsg) tea.Cmd {
 		}
 	}
 
-	return nil
+	return cmd
 }
 
 // fbCommitAndRefresh confirms the pending selection and re-pulls the provider

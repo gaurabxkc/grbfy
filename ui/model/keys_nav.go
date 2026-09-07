@@ -86,6 +86,26 @@ func (m *Model) handleNavBrowserKey(msg tea.KeyPressMsg) tea.Cmd {
 	return nil
 }
 
+// navListNavKey applies the paging and jump-to-edge keys shared by every
+// browser list, which previously only had up/down. It reports whether it
+// consumed the key so callers can carry on with their own bindings.
+func (m *Model) navListNavKey(key string, listLen int) bool {
+	switch key {
+	case "pgup", "ctrl+u":
+		m.navBrowser.cursor = max(0, m.navBrowser.cursor-m.navVisible())
+	case "pgdown", "ctrl+d":
+		m.navBrowser.cursor = min(max(0, listLen-1), m.navBrowser.cursor+m.navVisible())
+	case "home", "g":
+		m.navBrowser.cursor = 0
+	case "end", "G":
+		m.navBrowser.cursor = max(0, listLen-1)
+	default:
+		return false
+	}
+	m.navMaybeAdjustScroll()
+	return true
+}
+
 type navMenuItem struct {
 	label string
 	mode  provider.BrowseMode
@@ -145,6 +165,9 @@ func (m *Model) handleNavMenuKey(msg tea.KeyPressMsg) tea.Cmd {
 	case "esc", "N", "backspace", "b":
 		m.cancelNavRequests()
 		m.navBrowser.visible = false
+
+	default:
+		return m.transportKey(msg)
 	}
 	return nil
 }
@@ -257,6 +280,12 @@ func (m *Model) handleNavGenreListKey(msg tea.KeyPressMsg) tea.Cmd {
 		}
 	case "esc", "h", "left", "backspace":
 		m.navBackFromRoot()
+
+	default:
+		if m.navListNavKey(msg.String(), listLen) {
+			return nil
+		}
+		return m.transportKey(msg)
 	}
 	return nil
 }
@@ -304,6 +333,12 @@ func (m *Model) handleNavGenreSortKey(msg tea.KeyPressMsg) tea.Cmd {
 		m.cancelNavRequests()
 		m.navClearSearch()
 		m.navBrowser.screen = navBrowseScreenList
+
+	default:
+		if m.navListNavKey(msg.String(), listLen) {
+			return nil
+		}
+		return m.transportKey(msg)
 	}
 	return nil
 }
@@ -386,6 +421,12 @@ func (m *Model) handleNavArtistListKey(msg tea.KeyPressMsg) tea.Cmd {
 		return m.fetchNavArtistAllTracksCmd(ab, artist.ID)
 	case "esc", "h", "left", "backspace":
 		m.navBackFromRoot()
+
+	default:
+		if m.navListNavKey(msg.String(), listLen) {
+			return nil
+		}
+		return m.transportKey(msg)
 	}
 	return nil
 }
@@ -485,6 +526,12 @@ func (m *Model) handleNavAlbumListKey(msg tea.KeyPressMsg, artistAlbums bool) te
 		} else {
 			m.navBackFromRoot()
 		}
+
+	default:
+		if m.navListNavKey(msg.String(), listLen) {
+			return nil
+		}
+		return m.transportKey(msg)
 	}
 	return nil
 }
@@ -619,6 +666,12 @@ func (m *Model) handleNavTrackListKey(msg tea.KeyPressMsg) tea.Cmd {
 		case navBrowseModeByGenre:
 			m.navBrowser.screen = navBrowseScreenAlbums
 		}
+
+	default:
+		if m.navListNavKey(msg.String(), listLen) {
+			return nil
+		}
+		return m.transportKey(msg)
 	}
 	return nil
 }

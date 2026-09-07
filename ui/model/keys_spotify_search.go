@@ -144,7 +144,7 @@ func (m *Model) handleSpotSearchResultsKey(msg tea.KeyPressMsg) tea.Cmd {
 		m.spotSearch.loading = false
 		m.spotSearch.screen = spotSearchInput
 		m.spotSearch.err = ""
-	case "ctrl+u":
+	case "ctrl+u", "pgup":
 		step := m.spotSearchResultsVisible()
 		if step < 1 {
 			step = 1
@@ -155,7 +155,7 @@ func (m *Model) handleSpotSearchResultsKey(msg tea.KeyPressMsg) tea.Cmd {
 			m.spotSearch.cursor = 0
 		}
 		m.spotSearchResultsMaybeAdjustScroll(m.spotSearchResultsVisible())
-	case "ctrl+d":
+	case "ctrl+d", "pgdown":
 		step := m.spotSearchResultsVisible()
 		if step < 1 {
 			step = 1
@@ -165,6 +165,15 @@ func (m *Model) handleSpotSearchResultsKey(msg tea.KeyPressMsg) tea.Cmd {
 			m.spotSearch.cursor = max(0, count-1)
 		}
 		m.spotSearchResultsMaybeAdjustScroll(m.spotSearchResultsVisible())
+	case "home", "g":
+		m.spotSearch.cursor = 0
+		m.spotSearchResultsMaybeAdjustScroll(m.spotSearchResultsVisible())
+	case "end", "G":
+		m.spotSearch.cursor = max(0, count-1)
+		m.spotSearchResultsMaybeAdjustScroll(m.spotSearchResultsVisible())
+
+	default:
+		return m.transportKey(msg)
 	}
 	return nil
 }
@@ -253,6 +262,9 @@ func (m *Model) handleSpotSearchPlaylistKey(msg tea.KeyPressMsg) tea.Cmd {
 		m.spotSearch.cursor = 0
 		m.spotSearch.scroll = 0
 		m.spotSearch.err = ""
+
+	default:
+		return m.transportKey(msg)
 	}
 	return nil
 }

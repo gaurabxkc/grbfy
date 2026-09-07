@@ -3,11 +3,16 @@ package ui
 import (
 	"bytes"
 	"fmt"
+	"image"
+	"image/color"
 	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"testing"
+	"time"
+
+	"github.com/bjarneo/cliamp/theme"
 )
 
 func TestExpandImageClockPassesThroughUnmarked(t *testing.T) {
@@ -68,16 +73,23 @@ func TestExpandImageClockFallsBackWhenTiny(t *testing.T) {
 	}
 }
 
-// resetTransmit lets a test observe the one-shot transmission, which another
-// test may already have consumed.
+// resetTransmit lets a test observe the transmission, which another test may
+// already have consumed.
 func resetTransmit(t *testing.T) {
 	t.Helper()
 	// A sync.Once cannot be copied, so these are re-zeroed rather than saved
 	// and restored. Re-transmitting in a later test is harmless.
 	reset := func() {
-		transmitOnce = sync.Once{}
 		prepareOnce = sync.Once{}
-		glyphsReady = make(chan []byte, 1)
+		masksReady = make(chan []*image.RGBA, 1)
+		cachedMasks = nil
+		sentTint = color.RGBA{}
+		tintBuilding = color.RGBA{}
+		select {
+		case <-tintEncoded:
+		default:
+		}
+		SetClockTint(color.RGBA{255, 255, 255, 255})
 	}
 	reset()
 	t.Cleanup(reset)
@@ -465,5 +477,74 @@ func TestClockMarksItselfSelfAnimating(t *testing.T) {
 	d.Render(v)
 	if v.SelfAnimating() {
 		t.Error("an ordinary visualizer claimed to self-animate")
+	}
+}
+
+// A theme has to reach the digits themselves: the placeholder's foreground
+// colour is spent carrying the image id, so the terminal cannot tint them.
+func TestClockFollowsThemeColor(t *testing.T) {
+	t.Cleanup(func() { ApplyThemeColors(theme.Theme{}) })
+
+	ApplyThemeColors(theme.Theme{
+		Name: "test", BG: "#101010", Accent: "#ff8800",
+		BrightFG: "#ffffff", FG: "#bbbbbb",
+		Green: "#00ff00", Yellow: "#ffff00", Red: "#ff0000",
+	})
+	if got, want := currentClockTint(), (color.RGBA{0xff, 0x88, 0x00, 0xff}); got != want {
+		t.Errorf("clock tint = %v, want the theme accent %v", got, want)
+	}
+
+	// The block-character fallback is ordinary text, so it takes the colour
+	// as a style rather than as pixels.
+	styled := ExpandImageClock("\x0005:23\x00fallback", 0, 0)
+	if !strings.Contains(styled, "fallback") {
+		t.Fatalf("fallback content lost: %q", styled)
+	}
+	if styled == "fallback" {
+		t.Error("themed fallback was not coloured")
+	}
+
+	// The default theme leaves both paths alone: its palette is the terminal's
+	// own ANSI colours, which say nothing about what reads well at this size.
+	ApplyThemeColors(theme.Theme{})
+	if got, want := currentClockTint(), (color.RGBA{255, 255, 255, 255}); got != want {
+		t.Errorf("default-theme tint = %v, want white %v", got, want)
+	}
+	if got := ExpandImageClock("\x0005:23\x00fallback", 0, 0); got != "fallback" {
+		t.Errorf("default theme coloured the fallback: %q", got)
+	}
+}
+
+// Re-theming must actually reach the terminal, or the clock keeps the colour
+// it was first drawn in until a restart.
+func TestClockGlyphsAreResentOnThemeChange(t *testing.T) {
+	resetTransmit(t)
+	t.Cleanup(func() { ApplyThemeColors(theme.Theme{}) })
+
+	var buf bytes.Buffer
+	TransmitClockGlyphs(&buf)
+	if buf.Len() == 0 {
+		t.Fatal("no initial transmission")
+	}
+
+	ApplyThemeColors(theme.Theme{
+		Name: "test", BG: "#101010", Accent: "#ff8800",
+		BrightFG: "#ffffff", FG: "#bbbbbb",
+		Green: "#00ff00", Yellow: "#ffff00", Red: "#ff0000",
+	})
+
+	// The re-tint is encoded off the render goroutine, so the frame that asks
+	// for it only starts the work; a later frame writes the result.
+	buf.Reset()
+	deadline := time.Now().Add(10 * time.Second)
+	for buf.Len() == 0 && time.Now().Before(deadline) {
+		TransmitClockGlyphs(&buf)
+		time.Sleep(10 * time.Millisecond)
+	}
+	if buf.Len() == 0 {
+		t.Fatal("theme change never re-sent the glyphs")
+	}
+	if !strings.Contains(buf.String(), "\x1b_Ga=t,f=100") {
+		t.Error("re-send carried no image data")
 	}
 }
