@@ -20,7 +20,7 @@ const (
 )
 
 // validQuality reports whether quality is one of the Qobuz format_id values
-// cliamp accepts.
+// grbfy accepts.
 //
 //	5  = MP3 320kbps
 //	6  = FLAC 16-bit/44.1kHz (CD)

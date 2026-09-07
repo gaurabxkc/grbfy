@@ -14,7 +14,7 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
-// Default binaries plugins may invoke via cliamp.exec.run(). Users can widen
+// Default binaries plugins may invoke via grbfy.exec.run(). Users can widen
 // this via [plugins] allowed_binaries = "yt-dlp,ffmpeg,ffprobe" in config.toml.
 var defaultAllowedBinaries = []string{"yt-dlp", "ffmpeg"}
 
@@ -137,10 +137,10 @@ func (em *execManager) stopAll() {
 	}
 }
 
-// registerExecAPI adds cliamp.exec.run(binary, args, opts?) -> handle, err.
+// registerExecAPI adds grbfy.exec.run(binary, args, opts?) -> handle, err.
 // The exec API is only functional for plugins declaring permissions = {"exec"}.
-// Without the permission, cliamp.exec is a no-op table that logs once.
-func registerExecAPI(L *lua.LState, cliamp *lua.LTable, em *execManager, p *Plugin, logger *pluginLogger) {
+// Without the permission, grbfy.exec is a no-op table that logs once.
+func registerExecAPI(L *lua.LState, grbfy *lua.LTable, em *execManager, p *Plugin, logger *pluginLogger) {
 	tbl := L.NewTable()
 
 	warned := false
@@ -149,7 +149,7 @@ func registerExecAPI(L *lua.LState, cliamp *lua.LTable, em *execManager, p *Plug
 			return true
 		}
 		if !warned {
-			logger.log(p.Name, "warn", "cliamp.exec requires permissions = {\"exec\"} — further warnings suppressed")
+			logger.log(p.Name, "warn", "grbfy.exec requires permissions = {\"exec\"} — further warnings suppressed")
 			warned = true
 		}
 		return false
@@ -363,7 +363,7 @@ func registerExecAPI(L *lua.LState, cliamp *lua.LTable, em *execManager, p *Plug
 		return 1
 	}))
 
-	L.SetField(cliamp, "exec", tbl)
+	L.SetField(grbfy, "exec", tbl)
 }
 
 // homeEnv returns the user's home directory for subprocess HOME, preferring

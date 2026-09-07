@@ -1,6 +1,6 @@
 -- now-playing.lua — Write current track to /tmp for status bars (Waybar, Polybar, etc.)
 --
--- The file at /tmp/cliamp-now-playing contains the current "Artist - Title"
+-- The file at /tmp/grbfy-now-playing contains the current "Artist - Title"
 -- and is updated on every track change. Cleaned up on quit.
 
 local p = plugin.register({
@@ -9,7 +9,7 @@ local p = plugin.register({
     description = "Write now-playing to /tmp for status bars",
 })
 
-local path = p:config("path") or "/tmp/cliamp-now-playing"
+local path = p:config("path") or "/tmp/grbfy-now-playing"
 
 p:on("track.change", function(track)
     local title = track.title or ""

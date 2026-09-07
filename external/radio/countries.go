@@ -213,7 +213,7 @@ func (p *Provider) LocationConsentID() string {
 // LocationPrompt returns the question to put to the listener.
 // Implements provider.LocationConsenter.
 func (*Provider) LocationPrompt() string {
-	return "Use your country to suggest nearby radio? cliamp would read it from your system timezone. Nothing is sent to a location service."
+	return "Use your country to suggest nearby radio? grbfy would read it from your system timezone. Nothing is sent to a location service."
 }
 
 // SetLocationConsent records the listener's answer and persists it, so the

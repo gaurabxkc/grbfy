@@ -280,6 +280,11 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 		return m.handleQueueKey(msg)
 	}
 
+	// Up Next overlay
+	if m.upNext.visible {
+		return m.handleUpNextKey(msg)
+	}
+
 	// Track info overlay
 	if m.showInfo {
 		switch msg.String() {
@@ -812,6 +817,18 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 	case "z":
 		m.playlist.ToggleShuffle()
 		m.saveConfigKey("shuffle", fmt.Sprintf("%v", m.playlist.Shuffled()))
+		return m.rearmPreload()
+
+	case "U":
+		m.openUpNext()
+
+	case "Z":
+		if !m.playlist.Shuffled() {
+			m.status.Show("Shuffle is off — press z first", statusTTLShort)
+			break
+		}
+		m.playlist.Reshuffle()
+		m.status.Show("Reshuffled", statusTTLShort)
 		return m.rearmPreload()
 
 	case "tab":

@@ -9,8 +9,8 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
-// registerCryptoAPI adds cliamp.crypto.{md5,sha256,hmac_sha256} to the cliamp table.
-func registerCryptoAPI(L *lua.LState, cliamp *lua.LTable) {
+// registerCryptoAPI adds grbfy.crypto.{md5,sha256,hmac_sha256} to the grbfy table.
+func registerCryptoAPI(L *lua.LState, grbfy *lua.LTable) {
 	tbl := L.NewTable()
 
 	L.SetField(tbl, "md5", L.NewFunction(func(L *lua.LState) int {
@@ -36,5 +36,5 @@ func registerCryptoAPI(L *lua.LState, cliamp *lua.LTable) {
 		return 1
 	}))
 
-	L.SetField(cliamp, "crypto", tbl)
+	L.SetField(grbfy, "crypto", tbl)
 }

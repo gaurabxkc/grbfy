@@ -956,13 +956,10 @@ func (p *SpotifyProvider) SearchTracks(ctx context.Context, query string, limit 
 		return nil, fmt.Errorf("spotify: search: %w", err)
 	}
 
+	// Tracks first, then albums. Searching for a song and having to scroll past
+	// a screen of albums to reach it is the wrong default: a track is playable
+	// immediately, whereas an album is a placeholder that has to be expanded.
 	var tracks []playlist.Track
-	for _, a := range result.Albums.Items {
-		if a == nil || a.ID == "" {
-			continue // skip null/unavailable results
-		}
-		tracks = append(tracks, albumFromItem(a))
-	}
 	for _, items := range [][]*spotifyItem{result.Tracks.Items, result.Episodes.Items} {
 		for _, t := range items {
 			if t == nil || t.ID == "" {
@@ -970,6 +967,12 @@ func (p *SpotifyProvider) SearchTracks(ctx context.Context, query string, limit 
 			}
 			tracks = append(tracks, trackFromItem(t))
 		}
+	}
+	for _, a := range result.Albums.Items {
+		if a == nil || a.ID == "" {
+			continue // skip null/unavailable results
+		}
+		tracks = append(tracks, albumFromItem(a))
 	}
 	return tracks, nil
 }

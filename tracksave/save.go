@@ -12,7 +12,7 @@ import (
 	"github.com/bjarneo/cliamp/resolve"
 )
 
-// Save downloads or copies track into ~/Music/cliamp and returns its path.
+// Save downloads or copies track into ~/Music/grbfy and returns its path.
 func Save(track playlist.Track) (string, error) {
 	return SaveTo(track, "")
 }
@@ -33,7 +33,7 @@ func Directory(directory string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, "Music", "cliamp"), nil
+	return filepath.Join(home, "Music", "grbfy"), nil
 }
 
 // SaveTo downloads or copies a track to the configured directory.

@@ -63,7 +63,7 @@ func PrepareAudioDevice(device string) func() {
 	}
 }
 
-// SwitchAudioDevice moves cliamp's audio stream to a different sink.
+// SwitchAudioDevice moves grbfy's audio stream to a different sink.
 // Falls back to changing the system default if the stream can't be found.
 func SwitchAudioDevice(deviceName string) error {
 	out, err := exec.Command("pactl", "list", "sink-inputs").Output()
@@ -117,15 +117,15 @@ func SwitchAudioDevice(deviceName string) error {
 	return nil
 }
 
-// matchCliamp checks if a sink-input's properties belong to cliamp.
+// matchCliamp checks if a sink-input's properties belong to grbfy.
 func matchCliamp(props map[string]string, pidStr string, idx int) int {
 	if props["application.process.id"] == pidStr {
 		return idx
 	}
-	if strings.EqualFold(props["application.process.binary"], "cliamp") {
+	if strings.EqualFold(props["application.process.binary"], "grbfy") {
 		return idx
 	}
-	if strings.Contains(strings.ToLower(props["application.name"]), "cliamp") {
+	if strings.Contains(strings.ToLower(props["application.name"]), "grbfy") {
 		return idx
 	}
 	return -1

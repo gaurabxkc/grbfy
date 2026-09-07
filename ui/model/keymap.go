@@ -119,6 +119,8 @@ func (m Model) keymapContext() (commandMode, string) {
 			return commandModeSubsFilter, "Subscription Filter"
 		}
 		return commandModeSubs, "Subscriptions"
+	case screenUpNext:
+		return commandModeUpNext, "Up Next"
 	case screenInfo:
 		return commandModeInfo, "Track Info"
 	case screenSearch:

@@ -49,7 +49,7 @@ func TestTrackDisplayName(t *testing.T) {
 		{
 			name:  "artist and title",
 			track: Track{Artist: "Radiohead", Title: "Creep"},
-			want:  "Radiohead - Creep",
+			want:  "Creep - Radiohead",
 		},
 		{
 			name:  "title only",
@@ -107,7 +107,7 @@ func TestCacheAlbumArtUsesContentHash(t *testing.T) {
 		t.Fatalf("cacheAlbumArt URLs = %q and %q, want same non-empty URL", first, second)
 	}
 
-	matches, err := filepath.Glob(filepath.Join(home, ".local", "share", "cliamp", albumArtCacheDir, "*"))
+	matches, err := filepath.Glob(filepath.Join(home, ".local", "share", "grbfy", albumArtCacheDir, "*"))
 	if err != nil {
 		t.Fatalf("Glob: %v", err)
 	}

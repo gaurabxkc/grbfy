@@ -14,6 +14,7 @@ require (
 	github.com/kkdai/youtube/v2 v2.10.6
 	github.com/urfave/cli/v3 v3.11.0
 	github.com/yuin/gopher-lua v1.1.2
+	golang.org/x/image v0.45.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sys v0.47.0
 	golang.org/x/text v0.41.0

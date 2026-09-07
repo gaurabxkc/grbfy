@@ -9,7 +9,7 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
-// SetReservedKeys records the set of keys owned by cliamp's core UI. Plugins
+// SetReservedKeys records the set of keys owned by grbfy's core UI. Plugins
 // attempting to bind one of these keys get a logged warning and their bind
 // call returns false. Called once during startup from main.go.
 func (m *Manager) SetReservedKeys(keys map[string]bool) {
@@ -51,6 +51,9 @@ func (m *Manager) EmitKey(key string) bool {
 	if m.closing {
 		return false
 	}
+	// bind() stores under the normalized form, so dispatch must normalize too,
+	// or no binding is ever found.
+	key = normalizeKey(key)
 	hooks := m.keyBinds[key]
 	if len(hooks) == 0 {
 		return false
@@ -69,10 +72,19 @@ func (m *Manager) EmitKey(key string) bool {
 	return true
 }
 
-// normalizeKey lowercases and strips whitespace so "Ctrl+X" and "ctrl+x"
-// collide at registration and dispatch.
+// normalizeKey canonicalizes a key string so registration and dispatch agree.
+//
+// Case is significant for a bare single character: Bubbletea reports shift+f
+// as "F", and the core keymap treats "f" and "F" as different commands, so
+// lowercasing here would both mis-target the binding and make it collide with
+// the reserved lowercase key. Modified and named keys ("Ctrl+X", "Left") are
+// lowercased, matching the convention the core registry uses.
 func normalizeKey(key string) string {
-	return strings.ToLower(strings.TrimSpace(key))
+	key = strings.TrimSpace(key)
+	if !strings.Contains(key, "+") && len([]rune(key)) == 1 {
+		return key
+	}
+	return strings.ToLower(key)
 }
 
 // registerKeymapAPI attaches :bind() / :unbind() to the plugin object returned
@@ -122,10 +134,10 @@ func (m *Manager) registerKeymapAPI(L *lua.LState, obj *lua.LTable, p *Plugin) {
 		if m.reservedKeys[key] {
 			m.mu.Unlock()
 			if m.logger != nil {
-				m.logger.log(p.Name, "warn", "refusing to bind %q: reserved by cliamp core", key)
+				m.logger.log(p.Name, "warn", "refusing to bind %q: reserved by grbfy core", key)
 			}
 			L.Push(lua.LFalse)
-			L.Push(lua.LString("key reserved by cliamp: " + key))
+			L.Push(lua.LString("key reserved by grbfy: " + key))
 			return 2
 		}
 		m.keyBinds[key] = append(m.keyBinds[key], &luaHook{plugin: p, fn: fn})
@@ -214,7 +226,7 @@ func (m *Manager) EmitCommand(pluginName, cmdName string, args []string) (string
 }
 
 // CommandList returns a flat list of "<plugin> <command>" strings. Used by
-// `cliamp plugin commands`. Order is unspecified.
+// `grbfy plugin commands`. Order is unspecified.
 func (m *Manager) CommandList() []string {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

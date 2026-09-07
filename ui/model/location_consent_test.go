@@ -30,7 +30,7 @@ func (p *locationProvider) Playlists() ([]playlist.PlaylistInfo, error) {
 	if p.consent != nil && *p.consent && p.detected != "" {
 		lists = append(lists, playlist.PlaylistInfo{ID: "p:0", Name: p.detected + " (near you)"})
 	}
-	return append(lists, playlist.PlaylistInfo{ID: "l:0", Name: "cliamp radio"}), nil
+	return append(lists, playlist.PlaylistInfo{ID: "l:0", Name: "grbfy radio"}), nil
 }
 
 func (p *locationProvider) Tracks(id string) ([]playlist.Track, error) {

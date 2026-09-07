@@ -6,16 +6,16 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
-// newQueueState builds an LState with cliamp.queue registered against the given
+// newQueueState builds an LState with grbfy.queue registered against the given
 // providers and permission set. logger is a discard logger.
 func newQueueState(t *testing.T, state *StateProvider, ctrl *ControlProvider, perms map[string]bool) *lua.LState {
 	t.Helper()
 	L := lua.NewState()
 	t.Cleanup(L.Close)
-	cliamp := L.NewTable()
+	grbfy := L.NewTable()
 	p := &Plugin{Name: "q", perms: perms}
-	registerQueueAPI(L, cliamp, state, ctrl, p, newPluginLogger(""))
-	L.SetGlobal("cliamp", cliamp)
+	registerQueueAPI(L, grbfy, state, ctrl, p, newPluginLogger(""))
+	L.SetGlobal("grbfy", grbfy)
 	return L
 }
 
@@ -34,10 +34,10 @@ func TestQueueReads(t *testing.T) {
 	L := newQueueState(t, state, &ControlProvider{}, nil)
 
 	if err := L.DoString(`
-		_G.count = cliamp.queue.count()
-		_G.cur = cliamp.queue.current()
-		_G.hasnext = cliamp.queue.has_next()
-		local list = cliamp.queue.list()
+		_G.count = grbfy.queue.count()
+		_G.cur = grbfy.queue.current()
+		_G.hasnext = grbfy.queue.has_next()
+		local list = grbfy.queue.list()
 		_G.n = #list
 		_G.title2 = list[2].title
 		_G.queued2 = list[2].queued
@@ -71,7 +71,7 @@ func TestQueueReads(t *testing.T) {
 
 func TestQueueHasNextDefaultsFalse(t *testing.T) {
 	L := newQueueState(t, &StateProvider{}, &ControlProvider{}, nil)
-	if err := L.DoString(`_G.hasnext = cliamp.queue.has_next()`); err != nil {
+	if err := L.DoString(`_G.hasnext = grbfy.queue.has_next()`); err != nil {
 		t.Fatal(err)
 	}
 	if got := bool(L.GetGlobal("hasnext").(lua.LBool)); got {
@@ -91,10 +91,10 @@ func TestQueueMutatorsRequireControl(t *testing.T) {
 	// Without the control permission, every mutator is a no-op.
 	L := newQueueState(t, &StateProvider{}, ctrl, nil)
 	if err := L.DoString(`
-		cliamp.queue.add("/x.mp3")
-		cliamp.queue.jump(2)
-		cliamp.queue.remove(0)
-		cliamp.queue.move(1, 0)
+		grbfy.queue.add("/x.mp3")
+		grbfy.queue.jump(2)
+		grbfy.queue.remove(0)
+		grbfy.queue.move(1, 0)
 	`); err != nil {
 		t.Fatal(err)
 	}
@@ -106,10 +106,10 @@ func TestQueueMutatorsRequireControl(t *testing.T) {
 	calls = nil
 	L2 := newQueueState(t, &StateProvider{}, ctrl, map[string]bool{PermControl: true})
 	if err := L2.DoString(`
-		cliamp.queue.add("/x.mp3")
-		cliamp.queue.jump(2)
-		cliamp.queue.remove(0)
-		cliamp.queue.move(1, 0)
+		grbfy.queue.add("/x.mp3")
+		grbfy.queue.jump(2)
+		grbfy.queue.remove(0)
+		grbfy.queue.move(1, 0)
 	`); err != nil {
 		t.Fatal(err)
 	}
@@ -137,9 +137,9 @@ func TestQueueMutatorArgsForwarded(t *testing.T) {
 	}
 	L := newQueueState(t, &StateProvider{}, ctrl, map[string]bool{PermControl: true})
 	if err := L.DoString(`
-		cliamp.queue.add("https://example.com/song.mp3")
-		cliamp.queue.jump(5)
-		cliamp.queue.move(3, 1)
+		grbfy.queue.add("https://example.com/song.mp3")
+		grbfy.queue.jump(5)
+		grbfy.queue.move(3, 1)
 	`); err != nil {
 		t.Fatal(err)
 	}

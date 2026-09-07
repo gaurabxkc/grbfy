@@ -76,18 +76,18 @@ func favRemovedMark() string { return favRemovedStyle.Render(favHeart) }
 // providerEmptyStateHint, keyed by lowercase provider Name(), returns the
 // remediation hint shown under the generic "No playlists in X" message.
 var providerEmptyStateHint = map[string]string{
-	"local playlists":     "Add .toml playlists to ~/.config/cliamp/playlists/.",
-	"local":               "Add .toml playlists to ~/.config/cliamp/playlists/.",
+	"local playlists":     "Add .toml playlists to ~/.config/grbfy/playlists/.",
+	"local":               "Add .toml playlists to ~/.config/grbfy/playlists/.",
 	"spotify":             "Sign in via Spotify, or check SPOTIFY_REFRESH_TOKEN.",
 	"navidrome":           "Verify [navidrome] url/username/password in config.toml.",
 	"jellyfin":            "Verify [jellyfin] url and token in config.toml.",
 	"emby":                "Verify [emby] url and token or username/password in config.toml.",
 	"audiobookshelf":      "Verify [audiobookshelf] url and token or username/password in config.toml.",
 	"plex":                "Verify [plex] server URL and token or library filter in config.toml.",
-	"youtube music":       "Run `cliamp ytmusic-login` to authorize, then refresh.",
-	"ytmusic":             "Run `cliamp ytmusic-login` to authorize, then refresh.",
+	"youtube music":       "Run `grbfy ytmusic-login` to authorize, then refresh.",
+	"ytmusic":             "Run `grbfy ytmusic-login` to authorize, then refresh.",
 	"soundcloud":          "Set [soundcloud] user in config.toml to browse a profile.",
-	"netease cloud music": "Run `cliamp setup` and configure NetEase browser cookies.",
+	"netease cloud music": "Run `grbfy setup` and configure NetEase browser cookies.",
 }
 
 // renderProviderEmptyState explains why the playlists pane is empty for the
@@ -497,7 +497,7 @@ func (m Model) centerFrame(frame string) string {
 }
 
 func (m Model) renderTitle() string {
-	title := titleStyle.Render("C L I A M P")
+	title := titleStyle.Render("G R B F Y")
 	label := m.focus.label()
 	if screen := m.activeScreen(); screen != screenMain {
 		label = screen.label()

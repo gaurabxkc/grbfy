@@ -1,6 +1,6 @@
-// Package luaplugin provides a Lua 5.1 scripting engine for cliamp plugins.
+// Package luaplugin provides a Lua 5.1 scripting engine for grbfy plugins.
 // Each plugin runs in an isolated GopherLua VM. Plugins are loaded from
-// ~/.config/cliamp/plugins/*.lua at startup.
+// ~/.config/grbfy/plugins/*.lua at startup.
 package luaplugin
 
 import (
@@ -63,7 +63,7 @@ type StateProvider struct {
 }
 
 // QueueEntry is one track in the playlist as exposed to plugins via
-// cliamp.queue.list(). Index is 0-based and matches CurrentIndex; Queued is
+// grbfy.queue.list(). Index is 0-based and matches CurrentIndex; Queued is
 // true when the track sits in the explicit play-next queue.
 type QueueEntry struct {
 	Title  string
@@ -146,6 +146,7 @@ func New(pluginCfg map[string]map[string]string, publisher EventPublisher) (*Man
 		timers:       newTimerManager(),
 		execs:        newExecManager(resolveAllowedBinaries(pluginCfg)),
 		publisher:    publisher,
+		reservedKeys: initialReservedKeys(),
 	}
 
 	dir, err := appdir.PluginDir()
@@ -215,7 +216,7 @@ func New(pluginCfg map[string]map[string]string, publisher EventPublisher) (*Man
 			}
 		}
 		if err := plugintrust.Verify(trustManifest, f.name, f.path); err != nil {
-			loadErrs = append(loadErrs, fmt.Sprintf("%s: %v; run `cliamp plugins trust %s`", f.name, err, f.name))
+			loadErrs = append(loadErrs, fmt.Sprintf("%s: %v; run `grbfy plugins trust %s`", f.name, err, f.name))
 			continue
 		}
 
@@ -237,7 +238,7 @@ func New(pluginCfg map[string]map[string]string, publisher EventPublisher) (*Man
 	return m, nil
 }
 
-// loadPlugin creates an isolated Lua VM, registers the cliamp API,
+// loadPlugin creates an isolated Lua VM, registers the grbfy API,
 // and executes the plugin file. Returns nil (no error) if the file
 // doesn't call plugin.register().
 func (m *Manager) loadPlugin(path, name string, cfg map[string]string) (*Plugin, error) {
@@ -258,7 +259,7 @@ func (m *Manager) loadPlugin(path, name string, cfg map[string]string) (*Plugin,
 	// Register the plugin.register() global.
 	m.registerPluginAPI(L, p)
 
-	// Register all cliamp.* API tables.
+	// Register all grbfy.* API tables.
 	m.registerCliampAPI(L, p)
 
 	p.mu.Lock()
@@ -447,25 +448,28 @@ func (m *Manager) registerPluginAPI(L *lua.LState, p *Plugin) {
 	L.SetGlobal("plugin", pluginTbl)
 }
 
-// registerCliampAPI sets up the "cliamp" global table with all sub-modules.
+// registerCliampAPI sets up the "grbfy" global table with all sub-modules.
 func (m *Manager) registerCliampAPI(L *lua.LState, p *Plugin) {
-	cliamp := L.NewTable()
-	registerLogAPI(L, cliamp, m.logger, p.Name)
-	registerJSONAPI(L, cliamp)
-	registerStoreAPI(L, cliamp, p.Name)
-	registerCryptoAPI(L, cliamp)
-	registerFSAPI(L, cliamp)
-	registerHTTPAPI(L, cliamp)
-	registerPlayerAPI(L, cliamp, &m.state)
-	registerTrackAPI(L, cliamp, &m.state)
-	registerTimerAPI(L, cliamp, m.timers, p)
-	registerQueueAPI(L, cliamp, &m.state, &m.control, p, m.logger)
-	registerNotifyAPI(L, cliamp, m.logger, p.Name)
-	registerControlAPI(L, cliamp, &m.control, p, m.logger)
-	registerMessageAPI(L, cliamp, &m.ui)
-	registerSleepAPI(L, cliamp)
-	registerExecAPI(L, cliamp, m.execs, p, m.logger)
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerLogAPI(L, grbfy, m.logger, p.Name)
+	registerJSONAPI(L, grbfy)
+	registerStoreAPI(L, grbfy, p.Name)
+	registerCryptoAPI(L, grbfy)
+	registerFSAPI(L, grbfy)
+	registerHTTPAPI(L, grbfy)
+	registerPlayerAPI(L, grbfy, &m.state)
+	registerTrackAPI(L, grbfy, &m.state)
+	registerTimerAPI(L, grbfy, m.timers, p)
+	registerQueueAPI(L, grbfy, &m.state, &m.control, p, m.logger)
+	registerNotifyAPI(L, grbfy, m.logger, p.Name)
+	registerControlAPI(L, grbfy, &m.control, p, m.logger)
+	registerMessageAPI(L, grbfy, &m.ui)
+	registerSleepAPI(L, grbfy)
+	registerExecAPI(L, grbfy, m.execs, p, m.logger)
+	L.SetGlobal("grbfy", grbfy)
+	// Every plugin written for upstream calls cliamp.*, so keep that name bound
+	// to the same table rather than breaking the existing plugin ecosystem.
+	L.SetGlobal("cliamp", grbfy)
 }
 
 // resolveAllowedBinaries merges defaultAllowedBinaries with any user-supplied

@@ -41,7 +41,7 @@ func isFLACQuality(q string) bool {
 }
 
 // requestQuality maps the user's configured quality to the value actually
-// sent to playbackinfo. The device client cliamp uses never receives the
+// sent to playbackinfo. The device client grbfy uses never receives the
 // LOSSLESS tier (BTS caps at HIGH AAC — verified against the live API), so
 // both FLAC settings request HI_RES_LOSSLESS: that returns DASH FLAC when
 // the track has it and downgrades to HIGH AAC otherwise, which

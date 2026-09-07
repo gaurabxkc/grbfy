@@ -1,4 +1,4 @@
-// Package tidal implements a cliamp provider for the Tidal streaming service.
+// Package tidal implements a grbfy provider for the Tidal streaming service.
 //
 // It uses Tidal's private client API (api.tidal.com/v1) — the same API the
 // python-tidal ecosystem uses — because the official developer API only

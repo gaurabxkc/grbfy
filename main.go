@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -114,7 +115,13 @@ func run(overrides config.Overrides, positional []string, daemon, visualizer60FP
 		fmt.Fprintf(os.Stderr, "logging: %v (continuing without file log)\n", logErr)
 		applog.Status("logging: %v", logErr)
 	} else {
-		applog.Info("cliamp starting (version=%s level=%s)", appmeta.Version(), appliedLevel)
+		applog.Info("grbfy starting (version=%s level=%s)", appmeta.Version(), appliedLevel)
+	}
+
+	// Rasterizing the image-clock glyphs takes a few hundred milliseconds, so
+	// start it now and let it run while providers and audio are set up.
+	if ui.ClockGraphicsAvailable() {
+		ui.PrepareClockGlyphs()
 	}
 
 	// Public providers are always available; account providers register when configured.
@@ -308,7 +315,7 @@ func run(overrides config.Overrides, positional []string, daemon, visualizer60FP
 
 	if len(positional) > 0 && (positional[0] == "search" || positional[0] == "search-sc") {
 		if len(positional) == 1 {
-			return fmt.Errorf("search requires a query string (e.g. cliamp search \"never gonna give you up\")")
+			return fmt.Errorf("search requires a query string (e.g. grbfy search \"never gonna give you up\")")
 		}
 		prefix := "ytsearch1:"
 		if positional[0] == "search-sc" {
@@ -368,7 +375,7 @@ func run(overrides config.Overrides, positional []string, daemon, visualizer60FP
 	// so resolve them synchronously here. The TUI path does this in the
 	// background via m.SetPendingURLs.
 	if daemon && len(resolved.Pending) > 0 {
-		fmt.Fprintf(os.Stderr, "cliamp: resolving %d remote URL(s)...\n", len(resolved.Pending))
+		fmt.Fprintf(os.Stderr, "grbfy: resolving %d remote URL(s)...\n", len(resolved.Pending))
 		remote, err := resolve.Remote(resolved.Pending)
 		if err != nil {
 			return fmt.Errorf("resolve remote: %w", err)
@@ -468,11 +475,32 @@ func run(overrides config.Overrides, positional []string, daemon, visualizer60FP
 	pluginBroker := ipc.NewBroker()
 	defer pluginBroker.Close()
 
+	// Plugins bind keys while New() loads them, so the reserved set has to be
+	// in place before that, not only afterwards.
+	luaplugin.SetDefaultReservedKeys(model.ReservedKeys())
+
+	// The image clock's glyphs are sent when it is first drawn, not here:
+	// entering the alternate screen discards stored images. Only the cell
+	// aspect is configured up front.
+	if ui.ClockGraphicsAvailable() {
+		if pc := cfg.Plugins["pomodoro"]; pc != nil {
+			if v, err := strconv.ParseFloat(pc["cell_aspect"], 64); err == nil {
+				ui.SetClockCellAspect(v)
+			}
+			ui.SetClockFont(pc["clock_font"])
+			if v, err := strconv.ParseFloat(pc["clock_stretch"], 64); err == nil {
+				ui.SetClockStretch(v)
+			}
+		}
+	}
+
 	luaMgr, luaErr := luaplugin.New(cfg.Plugins, pluginBroker)
 	if luaErr != nil {
 		fmt.Fprintf(os.Stderr, "lua plugins: %v\n", luaErr)
 	}
 	if luaMgr != nil {
+		// Also set before New() below via SetDefaultReservedKeys; this keeps the
+		// Manager correct if the registry ever changes after load.
 		luaMgr.SetReservedKeys(model.ReservedKeys())
 		defer luaMgr.Close()
 	}
@@ -818,7 +846,7 @@ func initLogging(levelStr string) (func() error, string, error) {
 	if err != nil {
 		return noop, "", fmt.Errorf("resolve config dir: %w", err)
 	}
-	closeFn, err := applog.Init(filepath.Join(dir, "cliamp.log"), level)
+	closeFn, err := applog.Init(filepath.Join(dir, "grbfy.log"), level)
 	if err != nil {
 		return noop, "", err
 	}
@@ -838,7 +866,7 @@ func wireMediaCtl(prog *tea.Program) (*mediactl.Service, error) {
 // package returns a bare sentinel, so all CLI copy stays in the command layer.
 func userIPCError(err error) error {
 	if errors.Is(err, ipc.ErrNotRunning) {
-		return fmt.Errorf("cliamp is not running (no socket at %s)", ipc.DefaultSocketPath())
+		return fmt.Errorf("grbfy is not running (no socket at %s)", ipc.DefaultSocketPath())
 	}
 	return err
 }
@@ -861,7 +889,7 @@ func ipcSendWithContext(ctx context.Context, operation string, params ipc.Reques
 		return ipc.Response{}, fmt.Errorf("marshal %s parameters: %w", operation, err)
 	}
 	response, err := ipc.SendV2(ipc.DefaultSocketPath(), ipc.V2Request{
-		ID:        json.RawMessage(`"cliamp"`),
+		ID:        json.RawMessage(`"grbfy"`),
 		Method:    "operation.submit",
 		Operation: operation,
 		Params:    raw,
@@ -893,7 +921,7 @@ func ipcSendWithContext(ctx context.Context, operation string, params ipc.Reques
 }
 
 func ipcState() (ipc.RuntimeSnapshot, error) {
-	response, err := ipc.SendV2(ipc.DefaultSocketPath(), ipc.V2Request{ID: json.RawMessage(`"cliamp"`), Method: "state.get"})
+	response, err := ipc.SendV2(ipc.DefaultSocketPath(), ipc.V2Request{ID: json.RawMessage(`"grbfy"`), Method: "state.get"})
 	if err != nil {
 		return ipc.RuntimeSnapshot{}, userIPCError(err)
 	}

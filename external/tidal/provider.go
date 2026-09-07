@@ -533,14 +533,14 @@ func (p *TidalProvider) ResolveSource(uri string) (streamURL string, segments []
 }
 
 // noteDowngrade warns (once per session) when a FLAC quality setting is being
-// served an AAC tier — the device client cliamp uses cannot get FLAC for
+// served an AAC tier — the device client grbfy uses cannot get FLAC for
 // tracks without a hi-res master.
 func (p *TidalProvider) noteDowngrade(delivered string) {
 	if !isFLACQuality(p.quality) || isFLACQuality(delivered) || delivered == "" {
 		return
 	}
 	if p.downgradeNoticed.CompareAndSwap(false, true) {
-		applog.UserWarn("tidal: delivered %s (AAC) — no FLAC for this track with cliamp's client type", delivered)
+		applog.UserWarn("tidal: delivered %s (AAC) — no FLAC for this track with grbfy's client type", delivered)
 	}
 }
 

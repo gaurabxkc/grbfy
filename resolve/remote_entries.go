@@ -14,7 +14,7 @@ import (
 // An ssh:// entry reaches exec.Command("ssh", ...) against a server-named
 // host; file:// and data: entries are not playable but are worth refusing on
 // the same principle. Fetching a playlist should never let its author pick
-// which program cliamp runs.
+// which program grbfy runs.
 //
 // Entries with no scheme are left exactly as they were. They are relative or
 // local paths whose handling predates this check, they cannot name a

@@ -43,7 +43,7 @@ func TestV2EntryPointsReportErrNotRunning(t *testing.T) {
 
 func TestNewServerSocketLifecycle(t *testing.T) {
 	dir := shortTempDir(t)
-	sock := filepath.Join(dir, "cliamp.sock")
+	sock := filepath.Join(dir, "grbfy.sock")
 	if err := os.WriteFile(sock, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func TestNewServerSocketLifecycle(t *testing.T) {
 
 func TestNewServerRejectsLivePID(t *testing.T) {
 	dir := shortTempDir(t)
-	sock := filepath.Join(dir, "cliamp.sock")
+	sock := filepath.Join(dir, "grbfy.sock")
 	if err := os.WriteFile(sock+".pid", []byte(strconv.Itoa(os.Getpid())), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestNewServerRejectsLivePID(t *testing.T) {
 }
 
 func TestV2ServerRejectsUnversionedRequest(t *testing.T) {
-	sock := filepath.Join(shortTempDir(t), "cliamp.sock")
+	sock := filepath.Join(shortTempDir(t), "grbfy.sock")
 	server, err := NewServer(sock)
 	if err != nil {
 		t.Fatal(err)
@@ -91,7 +91,7 @@ func TestV2ServerRejectsUnversionedRequest(t *testing.T) {
 }
 
 func TestStreamBandsUsesV2SpectrumMethod(t *testing.T) {
-	sock := filepath.Join(shortTempDir(t), "cliamp.sock")
+	sock := filepath.Join(shortTempDir(t), "grbfy.sock")
 	server, err := NewServer(sock)
 	if err != nil {
 		t.Fatal(err)

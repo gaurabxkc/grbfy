@@ -1,8 +1,8 @@
 package appmeta
 
 var (
-	clientName = "cliamp"
-	deviceName = "cliamp"
+	clientName = "grbfy"
+	deviceName = "grbfy"
 	version    = "dev"
 )
 

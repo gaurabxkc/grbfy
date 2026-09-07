@@ -43,21 +43,21 @@ var httpClient = &http.Client{
 	},
 }
 
-// registerHTTPAPI adds cliamp.http.{get,post} to the cliamp table.
-func registerHTTPAPI(L *lua.LState, cliamp *lua.LTable) {
+// registerHTTPAPI adds grbfy.http.{get,post} to the grbfy table.
+func registerHTTPAPI(L *lua.LState, grbfy *lua.LTable) {
 	tbl := L.NewTable()
 
-	// cliamp.http.get(url, opts?) -> body, status
+	// grbfy.http.get(url, opts?) -> body, status
 	L.SetField(tbl, "get", L.NewFunction(func(L *lua.LState) int {
 		return doHTTP(L, "GET")
 	}))
 
-	// cliamp.http.post(url, opts?) -> body, status
+	// grbfy.http.post(url, opts?) -> body, status
 	L.SetField(tbl, "post", L.NewFunction(func(L *lua.LState) int {
 		return doHTTP(L, "POST")
 	}))
 
-	L.SetField(cliamp, "http", tbl)
+	L.SetField(grbfy, "http", tbl)
 }
 
 const maxResponseBody = 1 << 20 // 1MB
@@ -73,7 +73,7 @@ func doHTTP(L *lua.LState, method string) int {
 
 	var bodyReader io.Reader
 	if opts != nil {
-		// JSON body: cliamp.http.post(url, {json = {...}})
+		// JSON body: grbfy.http.post(url, {json = {...}})
 		if jsonVal := opts.RawGetString("json"); jsonVal != lua.LNil {
 			goVal := luaToGo(jsonVal)
 			data, err := json.Marshal(goVal)
@@ -85,7 +85,7 @@ func doHTTP(L *lua.LState, method string) int {
 			bodyReader = strings.NewReader(string(data))
 		}
 
-		// Raw body: cliamp.http.post(url, {body = "..."})
+		// Raw body: grbfy.http.post(url, {body = "..."})
 		if body := opts.RawGetString("body"); body != lua.LNil {
 			bodyReader = strings.NewReader(body.String())
 		}

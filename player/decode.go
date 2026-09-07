@@ -203,7 +203,7 @@ func openSource(path string, onMeta func(string)) (sourceResult, error) {
 		cancel()
 		return sourceResult{}, fmt.Errorf("http request: %w", err)
 	}
-	req.Header.Set("User-Agent", "cliamp/1.0 (https://github.com/bjarneo/cliamp)")
+	req.Header.Set("User-Agent", "grbfy/1.0 (https://github.com/bjarneo/cliamp)")
 	// Request ICY metadata — servers that don't support it simply ignore this header.
 	req.Header.Set("Icy-MetaData", "1")
 	resp, err := httpClient.Do(req)

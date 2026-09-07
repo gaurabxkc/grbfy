@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -22,7 +23,6 @@ import (
 	"github.com/bjarneo/cliamp/pluginmgr"
 	"github.com/bjarneo/cliamp/theme"
 	"github.com/bjarneo/cliamp/ui"
-	"github.com/bjarneo/cliamp/upgrade"
 )
 
 func buildApp() *cli.Command {
@@ -53,7 +53,7 @@ func buildApp() *cli.Command {
 	}
 
 	return &cli.Command{
-		Name:                  "cliamp",
+		Name:                  "grbfy",
 		Usage:                 "retro terminal music player",
 		Version:               version,
 		EnableShellCompletion: true,
@@ -232,12 +232,11 @@ func overridesFromFlags(c *cli.Command) (config.Overrides, error) {
 func upgradeCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "upgrade",
-		Usage: "upgrade cliamp to the latest stable release",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{Name: "prerelease", Usage: "upgrade to the latest prerelease"},
-		},
+		Usage: "not available in grbfy (build from source instead)",
 		Action: func(ctx context.Context, c *cli.Command) error {
-			return upgrade.Run(version, c.Bool("prerelease"))
+			// Upstream's updater pulls bjarneo/cliamp release binaries, which would
+			// replace grbfy with a different program. grbfy ships no releases.
+			return errors.New("grbfy has no release channel: rebuild from source with 'make build'")
 		},
 	}
 }
@@ -263,7 +262,7 @@ func pluginsCommand() *cli.Command {
 				},
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp plugins install <source>")
+						return fmt.Errorf("usage: grbfy plugins install <source>")
 					}
 					return pluginmgr.Install(c.Args().First(), c.Bool("yes"))
 				},
@@ -277,7 +276,7 @@ func pluginsCommand() *cli.Command {
 				},
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp plugins trust <name>")
+						return fmt.Errorf("usage: grbfy plugins trust <name>")
 					}
 					return pluginmgr.Trust(c.Args().First(), c.Bool("yes"))
 				},
@@ -288,19 +287,19 @@ func pluginsCommand() *cli.Command {
 				ArgsUsage: "<name>",
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp plugins remove <name>")
+						return fmt.Errorf("usage: grbfy plugins remove <name>")
 					}
 					return pluginmgr.Remove(c.Args().First())
 				},
 			},
 			{
 				Name:      "call",
-				Usage:     "invoke a plugin command in the running cliamp",
+				Usage:     "invoke a plugin command in the running grbfy",
 				ArgsUsage: "<plugin> <command> [args...]",
 				Action: func(ctx context.Context, c *cli.Command) error {
 					args := c.Args().Slice()
 					if len(args) < 2 {
-						return fmt.Errorf("usage: cliamp plugins call <plugin> <command> [args...]")
+						return fmt.Errorf("usage: grbfy plugins call <plugin> <command> [args...]")
 					}
 					resp, err := ipcSendLong("plugin.call", ipc.Request{
 						Name: args[0],
@@ -318,7 +317,7 @@ func pluginsCommand() *cli.Command {
 			},
 			{
 				Name:  "commands",
-				Usage: "list plugin commands registered in the running cliamp",
+				Usage: "list plugin commands registered in the running grbfy",
 				Action: func(ctx context.Context, c *cli.Command) error {
 					resp, err := ipcSend("plugin.commands", ipc.Request{})
 					if err != nil {
@@ -341,29 +340,29 @@ func pluginsCommand() *cli.Command {
 func protocolCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "protocol",
-		Usage: "register cliamp:// links with the desktop",
-		Description: "Makes cliamp the handler for cliamp:// links, so clicking one plays\n" +
+		Usage: "register grbfy:// links with the desktop",
+		Description: "Makes grbfy the handler for grbfy:// links, so clicking one plays\n" +
 			"or queues its target. install.sh already registers the scheme; use\n" +
 			"these commands after a go install build, to point the scheme at a\n" +
 			"different binary, or to remove the registration.",
 		Commands: []*cli.Command{
 			{
 				Name:  "register",
-				Usage: "make cliamp the handler for cliamp:// links",
+				Usage: "make grbfy the handler for grbfy:// links",
 				Action: func(ctx context.Context, c *cli.Command) error {
 					return cmd.ProtocolRegister(os.Stdout)
 				},
 			},
 			{
 				Name:  "unregister",
-				Usage: "remove the cliamp:// handler registration",
+				Usage: "remove the grbfy:// handler registration",
 				Action: func(ctx context.Context, c *cli.Command) error {
 					return cmd.ProtocolUnregister(os.Stdout)
 				},
 			},
 			{
 				Name:  "status",
-				Usage: "report whether cliamp:// is registered",
+				Usage: "report whether grbfy:// is registered",
 				Action: func(ctx context.Context, c *cli.Command) error {
 					return cmd.ProtocolStatus(os.Stdout)
 				},
@@ -410,7 +409,7 @@ func setupCommand() *cli.Command {
 		Usage: "interactive wizard to configure remote providers",
 		Description: "Walks through configuring Navidrome, Plex, Jellyfin, Spotify,\n" +
 			"Qobuz, Tidal, NetEase, Audiobookshelf, and YouTube Music. Validates\n" +
-			"connections and writes ~/.config/cliamp/config.toml.",
+			"connections and writes ~/.config/grbfy/config.toml.",
 
 		Action: func(ctx context.Context, c *cli.Command) error {
 			return cmd.Setup()
@@ -449,7 +448,7 @@ func tidalCommand() *cli.Command {
 	return cmd
 }
 
-// providerCredsCommand builds the `cliamp <provider> reset` subcommand shared
+// providerCredsCommand builds the `grbfy <provider> reset` subcommand shared
 // by providers that cache OAuth credentials on disk.
 func providerCredsCommand(key, display string, credsPath func() (string, error), deleteCreds func() (bool, error)) *cli.Command {
 	return &cli.Command{
@@ -473,7 +472,7 @@ func providerCredsCommand(key, display string, credsPath func() (string, error),
 						return nil
 					}
 					fmt.Printf("Removed %s\n", path)
-					fmt.Printf("Restart cliamp and select %s to sign in again.\n", display)
+					fmt.Printf("Restart grbfy and select %s to sign in again.\n", display)
 					return nil
 				},
 			},
@@ -516,7 +515,7 @@ func playlistCommand() *cli.Command {
 				ArgsUsage: "\"Old\" \"New\"",
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() != 2 {
-						return fmt.Errorf("usage: cliamp playlist rename \"Old\" \"New\"")
+						return fmt.Errorf("usage: grbfy playlist rename \"Old\" \"New\"")
 					}
 					args := c.Args().Slice()
 					return cmd.PlaylistRename(args[0], args[1])
@@ -531,7 +530,7 @@ func playlistCommand() *cli.Command {
 				},
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp playlist add \"Name\" file1 [file2 ...] [--dir dir]")
+						return fmt.Errorf("usage: grbfy playlist add \"Name\" file1 [file2 ...] [--dir dir]")
 					}
 					name := c.Args().First()
 					paths := c.Args().Slice()[1:]
@@ -544,7 +543,7 @@ func playlistCommand() *cli.Command {
 				ArgsUsage: "\"Name\"",
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp playlist dirs \"Name\"")
+						return fmt.Errorf("usage: grbfy playlist dirs \"Name\"")
 					}
 					return cmd.PlaylistDirs(c.Args().First())
 				},
@@ -558,7 +557,7 @@ func playlistCommand() *cli.Command {
 				},
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp playlist show \"Name\" [--json]")
+						return fmt.Errorf("usage: grbfy playlist show \"Name\" [--json]")
 					}
 					return cmd.PlaylistShow(c.Args().First(), c.Bool("json"))
 				},
@@ -572,7 +571,7 @@ func playlistCommand() *cli.Command {
 				},
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp playlist remove \"Name\" --index N")
+						return fmt.Errorf("usage: grbfy playlist remove \"Name\" --index N")
 					}
 					return cmd.PlaylistRemove(c.Args().First(), int(c.Int("index")))
 				},
@@ -583,7 +582,7 @@ func playlistCommand() *cli.Command {
 				ArgsUsage: "\"Name\"",
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp playlist delete \"Name\"")
+						return fmt.Errorf("usage: grbfy playlist delete \"Name\"")
 					}
 					return cmd.PlaylistDelete(c.Args().First())
 				},
@@ -594,7 +593,7 @@ func playlistCommand() *cli.Command {
 				ArgsUsage: "\"Name\"",
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp playlist dedupe \"Name\"")
+						return fmt.Errorf("usage: grbfy playlist dedupe \"Name\"")
 					}
 					return cmd.PlaylistDedupe(c.Args().First())
 				},
@@ -608,7 +607,7 @@ func playlistCommand() *cli.Command {
 				},
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp playlist sort \"Name\" --by album")
+						return fmt.Errorf("usage: grbfy playlist sort \"Name\" --by album")
 					}
 					return cmd.PlaylistSort(c.Args().First(), c.String("by"))
 				},
@@ -638,7 +637,7 @@ func playlistCommand() *cli.Command {
 				},
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp playlist export \"Name\" [--format m3u|pls] [-o file]")
+						return fmt.Errorf("usage: grbfy playlist export \"Name\" [--format m3u|pls] [-o file]")
 					}
 					return cmd.PlaylistExport(c.Args().First(), c.String("format"), c.String("output"))
 				},
@@ -652,7 +651,7 @@ func playlistCommand() *cli.Command {
 				},
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp playlist import file.m3u [--name Name]")
+						return fmt.Errorf("usage: grbfy playlist import file.m3u [--name Name]")
 					}
 					return cmd.PlaylistImport(c.Args().First(), c.String("name"))
 				},
@@ -666,7 +665,7 @@ func playlistCommand() *cli.Command {
 				},
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp playlist bookmark \"Name\" --index N")
+						return fmt.Errorf("usage: grbfy playlist bookmark \"Name\" --index N")
 					}
 					return cmd.PlaylistBookmark(c.Args().First(), int(c.Int("index")))
 				},
@@ -687,7 +686,7 @@ func playlistCommand() *cli.Command {
 				},
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp playlist enrich \"Name\" --source metadata")
+						return fmt.Errorf("usage: grbfy playlist enrich \"Name\" --source metadata")
 					}
 					return cmd.PlaylistEnrich(c.Args().First(), c.String("source"))
 				},
@@ -802,7 +801,7 @@ func volumeCommand() *cli.Command {
 		ArgsUsage: "<dB>",
 		Action: func(ctx context.Context, c *cli.Command) error {
 			if c.Args().Len() == 0 {
-				return fmt.Errorf("usage: cliamp volume <dB>")
+				return fmt.Errorf("usage: grbfy volume <dB>")
 			}
 			db, err := strconv.ParseFloat(c.Args().First(), 64)
 			if err != nil {
@@ -821,7 +820,7 @@ func seekCommand() *cli.Command {
 		ArgsUsage: "<seconds>",
 		Action: func(ctx context.Context, c *cli.Command) error {
 			if c.Args().Len() == 0 {
-				return fmt.Errorf("usage: cliamp seek <seconds>")
+				return fmt.Errorf("usage: grbfy seek <seconds>")
 			}
 			secs, err := strconv.ParseFloat(c.Args().First(), 64)
 			if err != nil {
@@ -840,7 +839,7 @@ func loadCommand() *cli.Command {
 		ArgsUsage: "\"Playlist Name\"",
 		Action: func(ctx context.Context, c *cli.Command) error {
 			if c.Args().Len() == 0 {
-				return fmt.Errorf("usage: cliamp load \"Playlist Name\"")
+				return fmt.Errorf("usage: grbfy load \"Playlist Name\"")
 			}
 			_, err := ipcSend("load", ipc.Request{Playlist: c.Args().First()})
 			return err
@@ -855,7 +854,7 @@ func queueCommand() *cli.Command {
 		ArgsUsage: "</path/to/file.mp3>",
 		Action: func(ctx context.Context, c *cli.Command) error {
 			if c.Args().Len() == 0 {
-				return fmt.Errorf("usage: cliamp queue /path/to/file.mp3")
+				return fmt.Errorf("usage: grbfy queue /path/to/file.mp3")
 			}
 			_, err := ipcSend("queue", ipc.Request{Path: c.Args().First()})
 			return err
@@ -870,7 +869,7 @@ func themeCommand() *cli.Command {
 		ArgsUsage: "<name|list>",
 		Action: func(ctx context.Context, c *cli.Command) error {
 			if c.Args().Len() == 0 {
-				return fmt.Errorf("usage: cliamp theme <name|list>")
+				return fmt.Errorf("usage: grbfy theme <name|list>")
 			}
 			if strings.EqualFold(c.Args().First(), "list") {
 				themes := theme.LoadAll()
@@ -916,14 +915,14 @@ func visCommand() *cli.Command {
 		ArgsUsage: "<name|next|list>",
 		Action: func(ctx context.Context, c *cli.Command) error {
 			if c.Args().Len() == 0 {
-				return fmt.Errorf("usage: cliamp vis <name|next|list>")
+				return fmt.Errorf("usage: grbfy vis <name|next|list>")
 			}
 			if strings.EqualFold(c.Args().First(), "list") {
 				var active string
 				if snapshot, err := ipcState(); err == nil {
 					active = snapshot.Visualizer
 				} else {
-					fmt.Fprintln(os.Stderr, "(cliamp not running — active marker unavailable)")
+					fmt.Fprintln(os.Stderr, "(grbfy not running — active marker unavailable)")
 				}
 				for _, name := range ui.VisModeNames() {
 					marker := "  "
@@ -1019,7 +1018,7 @@ func speedCommand() *cli.Command {
 		ArgsUsage: "<ratio>",
 		Action: func(ctx context.Context, c *cli.Command) error {
 			if c.Args().Len() == 0 {
-				return fmt.Errorf("usage: cliamp speed <ratio>  (e.g. 1.0, 1.5, 0.75)")
+				return fmt.Errorf("usage: grbfy speed <ratio>  (e.g. 1.0, 1.5, 0.75)")
 			}
 			ratio, err := strconv.ParseFloat(c.Args().First(), 64)
 			if err != nil {
@@ -1048,7 +1047,7 @@ func eqCommand() *cli.Command {
 			if band >= 0 {
 				// Set a specific band.
 				if c.Args().Len() == 0 {
-					return fmt.Errorf("usage: cliamp eq --band N <dB>")
+					return fmt.Errorf("usage: grbfy eq --band N <dB>")
 				}
 				db, err := strconv.ParseFloat(c.Args().First(), 64)
 				if err != nil {
@@ -1063,7 +1062,7 @@ func eqCommand() *cli.Command {
 			}
 			// Apply a preset by name.
 			if c.Args().Len() == 0 {
-				return fmt.Errorf("usage: cliamp eq <preset>  (e.g. Flat, Rock, Pop, Jazz)")
+				return fmt.Errorf("usage: grbfy eq <preset>  (e.g. Flat, Rock, Pop, Jazz)")
 			}
 			resp, err := ipcSend("eq", ipc.Request{Name: c.Args().First()})
 			if err != nil {
@@ -1082,7 +1081,7 @@ func deviceCommand() *cli.Command {
 		ArgsUsage: "<name|list>",
 		Action: func(ctx context.Context, c *cli.Command) error {
 			if c.Args().Len() == 0 {
-				return fmt.Errorf("usage: cliamp device <name|list>")
+				return fmt.Errorf("usage: grbfy device <name|list>")
 			}
 			if strings.EqualFold(c.Args().First(), "list") {
 				resp, err := ipcSend("device", ipc.Request{Name: "list"})
@@ -1111,7 +1110,7 @@ func remoteCommand() *cli.Command {
 				Name:  "state",
 				Usage: "print the complete runtime snapshot as JSON",
 				Action: func(ctx context.Context, c *cli.Command) error {
-					response, err := ipc.SendV2(ipc.DefaultSocketPath(), ipc.V2Request{ID: json.RawMessage(`"cliamp"`), Method: "state.get"})
+					response, err := ipc.SendV2(ipc.DefaultSocketPath(), ipc.V2Request{ID: json.RawMessage(`"grbfy"`), Method: "state.get"})
 					if err != nil {
 						return userIPCError(err)
 					}
@@ -1122,7 +1121,7 @@ func remoteCommand() *cli.Command {
 				Name:  "capabilities",
 				Usage: "print available v2 operations as JSON",
 				Action: func(ctx context.Context, c *cli.Command) error {
-					response, err := ipc.SendV2(ipc.DefaultSocketPath(), ipc.V2Request{ID: json.RawMessage(`"cliamp"`), Method: "capabilities"})
+					response, err := ipc.SendV2(ipc.DefaultSocketPath(), ipc.V2Request{ID: json.RawMessage(`"grbfy"`), Method: "capabilities"})
 					if err != nil {
 						return userIPCError(err)
 					}
@@ -1139,14 +1138,14 @@ func remoteCommand() *cli.Command {
 				},
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp remote call <operation> [--params '{}']")
+						return fmt.Errorf("usage: grbfy remote call <operation> [--params '{}']")
 					}
 					params := json.RawMessage(c.String("params"))
 					if !json.Valid(params) {
 						return fmt.Errorf("--params must be a JSON value")
 					}
 					response, err := ipc.SendV2(ipc.DefaultSocketPath(), ipc.V2Request{
-						ID:        json.RawMessage(`"cliamp"`),
+						ID:        json.RawMessage(`"grbfy"`),
 						Method:    "operation.submit",
 						Operation: c.Args().First(),
 						Params:    params,
@@ -1172,9 +1171,9 @@ func remoteCommand() *cli.Command {
 				ArgsUsage: "<job-id>",
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp remote job <job-id>")
+						return fmt.Errorf("usage: grbfy remote job <job-id>")
 					}
-					response, err := ipc.SendV2(ipc.DefaultSocketPath(), ipc.V2Request{ID: json.RawMessage(`"cliamp"`), Method: "job.get", JobID: c.Args().First()})
+					response, err := ipc.SendV2(ipc.DefaultSocketPath(), ipc.V2Request{ID: json.RawMessage(`"grbfy"`), Method: "job.get", JobID: c.Args().First()})
 					if err != nil {
 						return userIPCError(err)
 					}
@@ -1187,9 +1186,9 @@ func remoteCommand() *cli.Command {
 				ArgsUsage: "<job-id>",
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp remote cancel <job-id>")
+						return fmt.Errorf("usage: grbfy remote cancel <job-id>")
 					}
-					response, err := ipc.SendV2(ipc.DefaultSocketPath(), ipc.V2Request{ID: json.RawMessage(`"cliamp"`), Method: "job.cancel", JobID: c.Args().First()})
+					response, err := ipc.SendV2(ipc.DefaultSocketPath(), ipc.V2Request{ID: json.RawMessage(`"grbfy"`), Method: "job.cancel", JobID: c.Args().First()})
 					if err != nil {
 						return userIPCError(err)
 					}
@@ -1202,9 +1201,9 @@ func remoteCommand() *cli.Command {
 				ArgsUsage: "<topic> [topic...]",
 				Action: func(ctx context.Context, c *cli.Command) error {
 					if c.Args().Len() == 0 {
-						return fmt.Errorf("usage: cliamp remote events runtime.state [runtime.job]")
+						return fmt.Errorf("usage: grbfy remote events runtime.state [runtime.job]")
 					}
-					stream, err := ipc.SubscribeV2(ipc.DefaultSocketPath(), json.RawMessage(`"cliamp"`), c.Args().Slice())
+					stream, err := ipc.SubscribeV2(ipc.DefaultSocketPath(), json.RawMessage(`"grbfy"`), c.Args().Slice())
 					if err != nil {
 						return userIPCError(err)
 					}
@@ -1254,7 +1253,7 @@ func waitForV2Job(ctx context.Context, jobID string) (ipc.V2Response, error) {
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 	for {
-		response, err := ipc.SendV2(ipc.DefaultSocketPath(), ipc.V2Request{ID: json.RawMessage(`"cliamp"`), Method: "job.get", JobID: jobID})
+		response, err := ipc.SendV2(ipc.DefaultSocketPath(), ipc.V2Request{ID: json.RawMessage(`"grbfy"`), Method: "job.get", JobID: jobID})
 		if err != nil {
 			return ipc.V2Response{}, userIPCError(err)
 		}

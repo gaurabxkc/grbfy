@@ -99,7 +99,10 @@ func albumSpotify(t *testing.T, albumHits, trackHits, albumTracks int) (*Spotify
 	return New(sess, "client", 320), &searchType
 }
 
-func TestSearchTracksLeadsWithAlbums(t *testing.T) {
+// Searching for a song should put songs first. An album is a placeholder that
+// has to be expanded before anything plays, so leading with albums buries the
+// result the search was actually for.
+func TestSearchTracksLeadsWithTracks(t *testing.T) {
 	p, searchType := albumSpotify(t, 2, 3, 0)
 
 	got, err := p.SearchTracks(context.Background(), "nofx", 10)
@@ -112,19 +115,19 @@ func TestSearchTracksLeadsWithAlbums(t *testing.T) {
 	if len(got) != 5 {
 		t.Fatalf("got %d results, want 5", len(got))
 	}
-	for i, want := range []bool{true, true, false, false, false} {
+	for i, want := range []bool{false, false, false, true, true} {
 		if got[i].IsAlbum() != want {
 			t.Errorf("result %d IsAlbum() = %v, want %v", i, got[i].IsAlbum(), want)
 		}
 	}
-	if id := got[0].AlbumID(); id != "al0" {
+	if got[0].AlbumID() != "" {
+		t.Errorf("track reported album id %q, want none", got[0].AlbumID())
+	}
+	if id := got[3].AlbumID(); id != "al0" {
 		t.Errorf("album id = %q, want %q", id, "al0")
 	}
-	if got[0].Year != 1994 {
-		t.Errorf("album year = %d, want 1994", got[0].Year)
-	}
-	if got[2].AlbumID() != "" {
-		t.Errorf("track reported album id %q, want none", got[2].AlbumID())
+	if got[3].Year != 1994 {
+		t.Errorf("album year = %d, want 1994", got[3].Year)
 	}
 }
 

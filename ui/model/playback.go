@@ -327,7 +327,14 @@ func (m *Model) queueTrackNext(track playlist.Track) tea.Cmd {
 // If the active track is removed, playback is stopped; the cursor is clamped
 // to the new playlist length.
 func (m *Model) removeSelectedFromPlaylist() {
-	idx := m.plCursor
+	m.removeTrackFromPlaylist(m.plCursor)
+}
+
+// removeTrackFromPlaylist removes the track at a playlist index, keeping the
+// saved playlist, the undo snapshot and playback state consistent. Taking an
+// index rather than reading the cursor lets other panels — Up Next — remove a
+// track without first moving the playlist cursor to it.
+func (m *Model) removeTrackFromPlaylist(idx int) {
 	if idx < 0 || idx >= m.playlist.Len() {
 		return
 	}
@@ -378,6 +385,9 @@ func (m *Model) removeSelectedFromPlaylist() {
 	wasActive := idx == m.playlist.Index()
 	if !m.playlist.Remove(idx) {
 		return
+	}
+	if m.plCursor > idx {
+		m.plCursor--
 	}
 	m.normalizeQueueOverlay()
 	m.playlistUndo = playlistUndo{active: true, snapshot: snapshot, loaded: loaded, saved: saved, persisted: persisted}

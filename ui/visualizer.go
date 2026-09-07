@@ -59,7 +59,7 @@ const (
 	VisSakura                     // falling cherry blossom petals
 	VisFirework                   // exploding firework bursts
 	VisBubbles                    // rising hollow ring bubbles
-	VisLogo                       // CLIAMP pixel text
+	VisLogo                       // GRBFY pixel text
 	VisTerrain                    // scrolling side-view mountain range
 	VisScope                      // Lissajous XY oscilloscope
 	VisHeartbeat                  // ECG pulse monitor trace
@@ -425,6 +425,15 @@ type Visualizer struct {
 	luaDriverCache  map[int]visModeDriver
 	pulseCoordCache *pulseCoords
 	mirrorGrid      brailleGrid
+	clockTicking    bool // last frame drew a self-animating clock
+}
+
+// SelfAnimating reports that the current visualizer changes on its own rather
+// than in response to audio — a clock counting down, for instance. The UI must
+// not drop to its idle cadence while one is on screen, or it would skip
+// seconds.
+func (v *Visualizer) SelfAnimating() bool {
+	return v != nil && v.clockTicking
 }
 
 // LuaVisRenderer is the callback type for rendering a Lua visualizer frame.
@@ -1042,7 +1051,12 @@ func (d *luaModeDriver) Render(v *Visualizer) string {
 	if v == nil || d.index < 0 || d.index >= len(v.luaVisNames) || v.luaRender == nil {
 		return ""
 	}
-	return v.luaRender(v.luaVisNames[d.index], luaBands(v.bands), v.Rows, v.columns(), v.frame)
+	out := v.luaRender(v.luaVisNames[d.index], luaBands(v.bands), v.Rows, v.columns(), v.frame)
+	// A plugin can ask for a glyph to be drawn as a real image instead of
+	// block characters; see ExpandImageClock. Output without the marker is
+	// returned untouched.
+	v.clockTicking = strings.HasPrefix(out, clockMarker)
+	return ExpandImageClock(out, v.Rows, v.columns())
 }
 
 func (v *Visualizer) columns() int {

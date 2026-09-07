@@ -143,7 +143,7 @@ func TestParseLevel(t *testing.T) {
 
 func TestStatusFootersOnly(t *testing.T) {
 	reset(t)
-	path := filepath.Join(t.TempDir(), "cliamp.log")
+	path := filepath.Join(t.TempDir(), "grbfy.log")
 	closeFn, err := Init(path, LevelDebug)
 	if err != nil {
 		t.Fatalf("Init: %v", err)
@@ -163,7 +163,7 @@ func TestStatusFootersOnly(t *testing.T) {
 
 func TestDiagnosticLogsSkipFooter(t *testing.T) {
 	reset(t)
-	path := filepath.Join(t.TempDir(), "cliamp.log")
+	path := filepath.Join(t.TempDir(), "grbfy.log")
 	closeFn, err := Init(path, LevelDebug)
 	if err != nil {
 		t.Fatalf("Init: %v", err)
@@ -194,7 +194,7 @@ func TestDiagnosticLogsSkipFooter(t *testing.T) {
 
 func TestUserLogsHitBothSinks(t *testing.T) {
 	reset(t)
-	path := filepath.Join(t.TempDir(), "cliamp.log")
+	path := filepath.Join(t.TempDir(), "grbfy.log")
 	closeFn, err := Init(path, LevelDebug)
 	if err != nil {
 		t.Fatalf("Init: %v", err)
@@ -226,7 +226,7 @@ func TestUserLogsHitBothSinks(t *testing.T) {
 
 func TestLevelFilteringSuppressesBelowThreshold(t *testing.T) {
 	reset(t)
-	path := filepath.Join(t.TempDir(), "cliamp.log")
+	path := filepath.Join(t.TempDir(), "grbfy.log")
 	closeFn, err := Init(path, LevelWarn)
 	if err != nil {
 		t.Fatalf("Init: %v", err)
@@ -291,7 +291,7 @@ func TestInitTwiceClosesPreviousFile(t *testing.T) {
 
 func TestInitMissingDirCreatesIt(t *testing.T) {
 	reset(t)
-	nested := filepath.Join(t.TempDir(), "a", "b", "c", "cliamp.log")
+	nested := filepath.Join(t.TempDir(), "a", "b", "c", "grbfy.log")
 	closeFn, err := Init(nested, LevelInfo)
 	if err != nil {
 		t.Fatalf("Init: %v", err)

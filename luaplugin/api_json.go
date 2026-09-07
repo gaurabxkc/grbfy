@@ -6,11 +6,11 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
-// registerJSONAPI adds cliamp.json.{encode,decode} to the cliamp table.
-func registerJSONAPI(L *lua.LState, cliamp *lua.LTable) {
+// registerJSONAPI adds grbfy.json.{encode,decode} to the grbfy table.
+func registerJSONAPI(L *lua.LState, grbfy *lua.LTable) {
 	tbl := L.NewTable()
 
-	// cliamp.json.decode(str) -> table
+	// grbfy.json.decode(str) -> table
 	L.SetField(tbl, "decode", L.NewFunction(func(L *lua.LState) int {
 		str := L.CheckString(1)
 		var v any
@@ -23,7 +23,7 @@ func registerJSONAPI(L *lua.LState, cliamp *lua.LTable) {
 		return 1
 	}))
 
-	// cliamp.json.encode(table) -> string
+	// grbfy.json.encode(table) -> string
 	L.SetField(tbl, "encode", L.NewFunction(func(L *lua.LState) int {
 		val := L.Get(1)
 		goVal := luaToGo(val)
@@ -37,7 +37,7 @@ func registerJSONAPI(L *lua.LState, cliamp *lua.LTable) {
 		return 1
 	}))
 
-	L.SetField(cliamp, "json", tbl)
+	L.SetField(grbfy, "json", tbl)
 }
 
 func jsonToLua(L *lua.LState, v any) lua.LValue {

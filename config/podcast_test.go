@@ -16,7 +16,7 @@ func TestPodcastConfig(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			dir := t.TempDir()
-			t.Setenv("CLIAMP_CONFIG_DIR", dir)
+			t.Setenv("GRBFY_CONFIG_DIR", dir)
 			if err := os.WriteFile(filepath.Join(dir, "config.toml"), []byte(tt.content), 0o600); err != nil {
 				t.Fatal(err)
 			}

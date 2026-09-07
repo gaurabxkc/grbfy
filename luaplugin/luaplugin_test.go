@@ -118,19 +118,19 @@ func TestLoadPluginCleanupStopsPendingTimers(t *testing.T) {
 		{
 			name: "without register",
 			code: `
-				cliamp.timer.after(0.01, function()
-					cliamp.fs.write(%q, "fired")
+				grbfy.timer.after(0.01, function()
+					grbfy.fs.write(%q, "fired")
 				end)
-				cliamp.sleep(0.05)
+				grbfy.sleep(0.05)
 			`,
 		},
 		{
 			name: "every",
 			code: `
-				cliamp.timer.every(0.01, function()
-					cliamp.fs.write(%q, "fired")
+				grbfy.timer.every(0.01, function()
+					grbfy.fs.write(%q, "fired")
 				end)
-				cliamp.sleep(0.05)
+				grbfy.sleep(0.05)
 			`,
 		},
 		{
@@ -138,10 +138,10 @@ func TestLoadPluginCleanupStopsPendingTimers(t *testing.T) {
 			expectErr: true,
 			code: `
 				local p = plugin.register({name = "bad", type = "hook"})
-				cliamp.timer.after(0.01, function()
-					cliamp.fs.write(%q, "fired")
+				grbfy.timer.after(0.01, function()
+					grbfy.fs.write(%q, "fired")
 				end)
-				cliamp.sleep(0.05)
+				grbfy.sleep(0.05)
 				error("boom")
 			`,
 		},
@@ -340,10 +340,10 @@ func TestManagerWithStateProvider(t *testing.T) {
 
 	p := loadTestPlugin(t, m, "state-test", `
 		local p = plugin.register({name = "state-test", type = "hook"})
-		_G.state = cliamp.player.state()
-		_G.vol = cliamp.player.volume()
-		_G.title = cliamp.track.title()
-		_G.artist = cliamp.track.artist()
+		_G.state = grbfy.player.state()
+		_G.vol = grbfy.player.volume()
+		_G.title = grbfy.track.title()
+		_G.artist = grbfy.track.artist()
 	`)
 
 	if p.L.GetGlobal("state").String() != "playing" {
@@ -373,7 +373,7 @@ func TestManagerWithControlProvider(t *testing.T) {
 			type = "hook",
 			permissions = {"control"},
 		})
-		cliamp.player.set_volume(-10)
+		grbfy.player.set_volume(-10)
 	`)
 
 	if gotVol != -10 {
@@ -396,8 +396,8 @@ func TestControlClampsBounds(t *testing.T) {
 			type = "hook",
 			permissions = {"control"},
 		})
-		cliamp.player.set_volume(100)
-		cliamp.player.set_speed(10)
+		grbfy.player.set_volume(100)
+		grbfy.player.set_speed(10)
 	`)
 
 	if gotVol != 6 {
@@ -419,7 +419,7 @@ func TestControlWithoutPermissionIsNoop(t *testing.T) {
 
 	loadTestPlugin(t, m, "no-perm", `
 		plugin.register({name = "no-perm", type = "hook"})
-		cliamp.player.set_volume(-10)
+		grbfy.player.set_volume(-10)
 	`)
 
 	if called {
@@ -433,11 +433,11 @@ func TestStateProviderDefaultsWhenNil(t *testing.T) {
 
 	p := loadTestPlugin(t, m, "defaults", `
 		local p = plugin.register({name = "defaults", type = "hook"})
-		_G.state = cliamp.player.state()
-		_G.vol = cliamp.player.volume()
-		_G.speed = cliamp.player.speed()
-		_G.pos = cliamp.player.position()
-		_G.title = cliamp.track.title()
+		_G.state = grbfy.player.state()
+		_G.vol = grbfy.player.volume()
+		_G.speed = grbfy.player.speed()
+		_G.pos = grbfy.player.position()
+		_G.title = grbfy.track.title()
 	`)
 
 	if p.L.GetGlobal("state").String() != "stopped" {
@@ -459,7 +459,7 @@ func TestTimerAfter(t *testing.T) {
 	p := loadTestPlugin(t, m, "timer-test", `
 		local p = plugin.register({name = "timer-test", type = "hook"})
 		_G.fired = false
-		cliamp.timer.after(0.05, function()
+		grbfy.timer.after(0.05, function()
 			_G.fired = true
 		end)
 	`)
@@ -480,10 +480,10 @@ func TestTimerCancel(t *testing.T) {
 	p := loadTestPlugin(t, m, "cancel-test", `
 		local p = plugin.register({name = "cancel-test", type = "hook"})
 		_G.fired = false
-		local id = cliamp.timer.after(0.2, function()
+		local id = grbfy.timer.after(0.2, function()
 			_G.fired = true
 		end)
-		cliamp.timer.cancel(id)
+		grbfy.timer.cancel(id)
 	`)
 
 	time.Sleep(300 * time.Millisecond)

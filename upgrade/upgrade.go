@@ -49,7 +49,7 @@ func Run(currentVersion string, prerelease bool) error {
 		fmt.Printf("Upgrading %s → %s\n", currentVersion, latest)
 	}
 
-	binaryName := fmt.Sprintf("cliamp-%s-%s", runtime.GOOS, runtime.GOARCH)
+	binaryName := fmt.Sprintf("grbfy-%s-%s", runtime.GOOS, runtime.GOARCH)
 	if runtime.GOOS == "windows" {
 		binaryName += ".exe"
 	}
@@ -174,7 +174,7 @@ func downloadAndReplace(url, destPath, expectedHash string) error {
 	// Write to a temp file in the same directory as the target so
 	// os.Rename works (same filesystem).
 	dir := filepath.Dir(destPath)
-	tmp, err := os.CreateTemp(dir, "cliamp-upgrade-*")
+	tmp, err := os.CreateTemp(dir, "grbfy-upgrade-*")
 	if err != nil {
 		return fmt.Errorf("creating temp file: %w (try running with sudo)", err)
 	}

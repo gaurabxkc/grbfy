@@ -28,7 +28,7 @@ func TestProviderNewHasBuiltinStation(t *testing.T) {
 		t.Fatalf("Playlists: %v", err)
 	}
 	if len(infos) == 0 {
-		t.Fatal("Playlists() returned none — expected built-in cliamp radio")
+		t.Fatal("Playlists() returned none — expected built-in grbfy radio")
 	}
 	if infos[0].Name != builtinName {
 		t.Errorf("first playlist = %q, want %q", infos[0].Name, builtinName)
@@ -43,7 +43,7 @@ func TestProviderLoadsStationsFromTOML(t *testing.T) {
 	t.Setenv("HOME", home)
 
 	// Create radios.toml with one extra station.
-	cfgDir := filepath.Join(home, ".config", "cliamp")
+	cfgDir := filepath.Join(home, ".config", "grbfy")
 	writeFile(t, filepath.Join(cfgDir, "radios.toml"), `[[station]]
 name = "Extra"
 url = "https://extra.example/stream"

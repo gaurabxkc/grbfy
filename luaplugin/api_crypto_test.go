@@ -9,11 +9,11 @@ import (
 func TestCryptoMD5(t *testing.T) {
 	L := lua.NewState()
 	defer L.Close()
-	cliamp := L.NewTable()
-	registerCryptoAPI(L, cliamp)
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerCryptoAPI(L, grbfy)
+	L.SetGlobal("grbfy", grbfy)
 
-	err := L.DoString(`_G.hash = cliamp.crypto.md5("hello")`)
+	err := L.DoString(`_G.hash = grbfy.crypto.md5("hello")`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,11 +27,11 @@ func TestCryptoMD5(t *testing.T) {
 func TestCryptoSHA256(t *testing.T) {
 	L := lua.NewState()
 	defer L.Close()
-	cliamp := L.NewTable()
-	registerCryptoAPI(L, cliamp)
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerCryptoAPI(L, grbfy)
+	L.SetGlobal("grbfy", grbfy)
 
-	err := L.DoString(`_G.hash = cliamp.crypto.sha256("hello")`)
+	err := L.DoString(`_G.hash = grbfy.crypto.sha256("hello")`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,11 +45,11 @@ func TestCryptoSHA256(t *testing.T) {
 func TestCryptoHMACSHA256(t *testing.T) {
 	L := lua.NewState()
 	defer L.Close()
-	cliamp := L.NewTable()
-	registerCryptoAPI(L, cliamp)
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerCryptoAPI(L, grbfy)
+	L.SetGlobal("grbfy", grbfy)
 
-	err := L.DoString(`_G.hash = cliamp.crypto.hmac_sha256("key", "message")`)
+	err := L.DoString(`_G.hash = grbfy.crypto.hmac_sha256("key", "message")`)
 	if err != nil {
 		t.Fatal(err)
 	}

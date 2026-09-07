@@ -178,6 +178,7 @@ const (
 	screenSpotSearch
 	screenQueue
 	screenSubs
+	screenUpNext
 	screenInfo
 	screenSearch
 	screenNetSearch
@@ -211,6 +212,8 @@ func (s topLevelScreen) label() string {
 		return "Queue"
 	case screenSubs:
 		return "Subscriptions"
+	case screenUpNext:
+		return "Up Next"
 	case screenInfo:
 		return "Track Info"
 	case screenSearch:
@@ -342,6 +345,7 @@ type Model struct {
 	keymap         keymapOverlay
 	queue          queueOverlay
 	subs           subsOverlay
+	upNext         upNextOverlay
 	plManager      plManagerState
 	plPicker       playlistPickerState
 	spotSearch     spotSearchState
@@ -532,6 +536,8 @@ func (m Model) activeScreen() topLevelScreen {
 		return screenQueue
 	case m.subs.visible:
 		return screenSubs
+	case m.upNext.visible:
+		return screenUpNext
 	case m.showInfo:
 		return screenInfo
 	case m.lyrics.visible:

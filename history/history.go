@@ -1,5 +1,5 @@
 // Package history persists the user's recently played tracks to a TOML file
-// in the cliamp config directory. Entries are recorded when a track has been
+// in the grbfy config directory. Entries are recorded when a track has been
 // played past the scrobble threshold (the same heuristic Last.fm and the
 // Navidrome scrobbler use) so skipped tracks never enter the list.
 //
@@ -48,7 +48,7 @@ type Store struct {
 	mu sync.Mutex
 }
 
-// New returns a Store backed by ~/.config/cliamp/history.toml. Returns nil if
+// New returns a Store backed by ~/.config/grbfy/history.toml. Returns nil if
 // the config directory cannot be resolved (rare; same failure mode as the
 // local playlist provider).
 func New() *Store {
@@ -188,7 +188,7 @@ func dedupeNewestFirst(entries []Entry) []Entry {
 func (s *Store) saveLocked(entries []Entry) error {
 	// Build the full content in memory (writes to a Builder can't fail), then
 	// write a unique temp file and rename so a partial/failed write — or a
-	// second cliamp process — can never truncate or clobber existing history.
+	// second grbfy process — can never truncate or clobber existing history.
 	var b strings.Builder
 	for i, e := range entries {
 		if i > 0 {

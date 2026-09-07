@@ -1,4 +1,4 @@
-// Package pluginmgr implements the `cliamp plugins` CLI subcommands:
+// Package pluginmgr implements the `grbfy plugins` CLI subcommands:
 // list, install, and remove.
 package pluginmgr
 
@@ -132,10 +132,10 @@ func Install(source string, assumeYes ...bool) error {
 	// Check if already installed (file or directory).
 	dest := filepath.Join(dir, name+".lua")
 	if _, err := os.Stat(dest); err == nil {
-		return fmt.Errorf("plugin %q already exists at %s (remove it first with: cliamp plugins remove %s)", name, dest, name)
+		return fmt.Errorf("plugin %q already exists at %s (remove it first with: grbfy plugins remove %s)", name, dest, name)
 	}
 	if info, err := os.Stat(filepath.Join(dir, name)); err == nil && info.IsDir() {
-		return fmt.Errorf("plugin %q already exists as directory (remove it first with: cliamp plugins remove %s)", name, name)
+		return fmt.Errorf("plugin %q already exists as directory (remove it first with: grbfy plugins remove %s)", name, name)
 	}
 
 	// Try each candidate URL.
@@ -399,7 +399,7 @@ func extractMetadataSource(source string) pluginInfo {
 	}))
 	L.SetGlobal("plugin", pluginTbl)
 
-	// No cliamp API is installed: metadata inspection happens before trust.
+	// No grbfy API is installed: metadata inspection happens before trust.
 	if err := L.DoString(source); err != nil && info.name == "" {
 		info.err = err
 	}

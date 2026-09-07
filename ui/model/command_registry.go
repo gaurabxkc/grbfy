@@ -49,6 +49,7 @@ const (
 	commandModeProviderSearch
 	commandModeSubs
 	commandModeSubsFilter
+	commandModeUpNext
 )
 
 const commandModeAny = ^commandMode(0)
@@ -268,6 +269,13 @@ var commandRegistry = []commandSpec{
 	{Mode: commandModeThemePickerFilter | commandModeVisPickerFilter, Keys: []string{"enter"}, KeyLabel: "Enter", Label: "Finish filter", ContextHelp: true, Primary: true},
 	{Mode: commandModeQueue, Keys: []string{"d"}, KeyLabel: "d", Label: "Remove", Destructive: true, ContextHelp: true, Primary: true, Enabled: func(m Model) bool { return m.playlist != nil && m.playlist.QueueLen() > 0 }},
 	{Mode: commandModeQueue, Keys: []string{"c"}, KeyLabel: "c", Label: "Clear", Destructive: true, ContextHelp: true},
+	{Mode: commandModeMain, Keys: []string{"U"}, KeyLabel: "U", Label: "Up next", Keymap: true},
+	{Mode: commandModeMain, Keys: []string{"Z"}, KeyLabel: "Z", Label: "Reshuffle", Keymap: true, Enabled: func(m Model) bool { return m.playlist != nil && m.playlist.Shuffled() }},
+	{Mode: commandModeUpNext, Keys: []string{"up", "down", "k", "j"}, KeyLabel: "Up Down", Label: "Navigate", ContextHelp: true},
+	{Mode: commandModeUpNext, Keys: []string{"enter"}, KeyLabel: "Enter", Label: "Play now", ContextHelp: true, Primary: true},
+	{Mode: commandModeUpNext, Keys: []string{"shift+up", "shift+down"}, KeyLabel: "Shift Up Down", Label: "Reorder", ContextHelp: true},
+	{Mode: commandModeUpNext, Keys: []string{"d"}, KeyLabel: "d", Label: "Remove from queue", Destructive: true, ContextHelp: true},
+	{Mode: commandModeUpNext, Keys: []string{"esc"}, KeyLabel: "Esc", Label: "Back", ContextHelp: true, Cancel: true},
 	{Mode: commandModeFileBrowser, Keys: []string{"R"}, KeyLabel: "R", Label: "Replace queue", Destructive: true, ContextHelp: true},
 	{Mode: commandModeNavBrowser, Keys: []string{"R"}, KeyLabel: "R", Label: "Replace queue", Destructive: true, ContextHelp: true, Enabled: func(m Model) bool { return m.navView() == navViewTracks }},
 	{Mode: commandModeLyrics, Keys: []string{"r"}, KeyLabel: "r", Label: "Retry", ContextHelp: true, Primary: true, Enabled: func(m Model) bool { return !m.lyrics.loading && (m.lyrics.err != nil || len(m.lyrics.lines) == 0) }},

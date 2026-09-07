@@ -172,6 +172,8 @@ func (m Model) activeOverlay() (overlayView, bool) {
 			(*Model).queueHelpLine, (*Model).renderQueueBody}, true
 	case m.subs.visible:
 		return overlayView{(*Model).subsHeaderLine, (*Model).subsHelpLine, (*Model).renderSubsBody}, true
+	case m.upNext.visible:
+		return overlayView{(*Model).upNextHeaderLine, (*Model).upNextHelpLine, (*Model).renderUpNextBody}, true
 	case m.showInfo:
 		return overlayView{
 			func(*Model) string { return sepHeader("Track Info") },

@@ -2,8 +2,8 @@ package luaplugin
 
 import lua "github.com/yuin/gopher-lua"
 
-// registerTrackAPI adds the read-only cliamp.track.* table.
-func registerTrackAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider) {
+// registerTrackAPI adds the read-only grbfy.track.* table.
+func registerTrackAPI(L *lua.LState, grbfy *lua.LTable, state *StateProvider) {
 	tbl := L.NewTable()
 
 	L.SetField(tbl, "title", L.NewFunction(func(L *lua.LState) int {
@@ -87,5 +87,5 @@ func registerTrackAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider) {
 		return 1
 	}))
 
-	L.SetField(cliamp, "track", tbl)
+	L.SetField(grbfy, "track", tbl)
 }

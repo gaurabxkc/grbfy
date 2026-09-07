@@ -23,7 +23,7 @@ func TestMetadataConfigLoad(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			dir := t.TempDir()
-			t.Setenv("CLIAMP_CONFIG_DIR", dir)
+			t.Setenv("GRBFY_CONFIG_DIR", dir)
 			if tt.content != "" {
 				if err := os.WriteFile(filepath.Join(dir, "config.toml"), []byte(tt.content), 0o600); err != nil {
 					t.Fatal(err)
@@ -42,7 +42,7 @@ func TestMetadataConfigLoad(t *testing.T) {
 
 func TestMetadataConfigSaveRoundTrip(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("CLIAMP_CONFIG_DIR", dir)
+	t.Setenv("GRBFY_CONFIG_DIR", dir)
 	path := filepath.Join(dir, "config.toml")
 	const original = "# Keep unrelated settings and formatting\nvolume = -9\nvis_rows = 12\nhide_settings_pane = true\n\n[radio]\ncountry = \"no\"\n"
 	if err := os.WriteFile(path, []byte(original), 0o600); err != nil {

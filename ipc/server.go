@@ -551,7 +551,7 @@ func cleanStaleSocket(sockPath string) error {
 	conn, err := dialSocket(sockPath, 200*time.Millisecond)
 	if err == nil {
 		_ = conn.Close()
-		return fmt.Errorf("ipc: cliamp is already running")
+		return fmt.Errorf("ipc: grbfy is already running")
 	}
 	if !isSocketUnavailable(err) {
 		return fmt.Errorf("ipc: probe socket %s: %w", sockPath, err)
@@ -584,5 +584,5 @@ func cleanStaleSocket(sockPath string) error {
 		return nil
 	}
 
-	return fmt.Errorf("ipc: cliamp is already running (pid %d)", pid)
+	return fmt.Errorf("ipc: grbfy is already running (pid %d)", pid)
 }

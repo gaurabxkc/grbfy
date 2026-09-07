@@ -18,7 +18,7 @@ func sandbox(L *lua.LState) {
 	L.SetGlobal("package", lua.LNil)
 	L.SetGlobal("debug", lua.LNil)
 
-	// Remove the io module entirely (replaced by cliamp.fs).
+	// Remove the io module entirely (replaced by grbfy.fs).
 	L.SetGlobal("io", lua.LNil)
 
 	// Restrict the os module to a safe subset: time, date, clock, getenv.

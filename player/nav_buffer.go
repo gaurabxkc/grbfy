@@ -126,7 +126,7 @@ func navBufferGet(ctx context.Context, rawURL string) (*http.Response, error) {
 // newNavBufferFor builds the file-backed buffer for an opened response.
 // On error the response body is closed and cancel invoked.
 func newNavBufferFor(resp *http.Response, cancel context.CancelFunc) (*navBuffer, error) {
-	file, err := os.CreateTemp("", "cliamp-nav-*")
+	file, err := os.CreateTemp("", "grbfy-nav-*")
 	if err != nil {
 		resp.Body.Close()
 		cancel()

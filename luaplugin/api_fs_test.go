@@ -27,18 +27,18 @@ func fsDisallowedPath() string {
 func TestFSWriteAndRead(t *testing.T) {
 	L := lua.NewState()
 	defer L.Close()
-	cliamp := L.NewTable()
-	registerFSAPI(L, cliamp)
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerFSAPI(L, grbfy)
+	L.SetGlobal("grbfy", grbfy)
 
-	tmp := fsAllowedPath("cliamp-test-" + t.Name())
+	tmp := fsAllowedPath("grbfy-test-" + t.Name())
 	defer os.Remove(tmp)
 
 	L.SetGlobal("path", lua.LString(tmp))
 	err := L.DoString(`
-		local ok = cliamp.fs.write(path, "hello world")
+		local ok = grbfy.fs.write(path, "hello world")
 		_G.write_ok = ok
-		local content = cliamp.fs.read(path)
+		local content = grbfy.fs.read(path)
 		_G.content = content
 	`)
 	if err != nil {
@@ -56,18 +56,18 @@ func TestFSWriteAndRead(t *testing.T) {
 func TestFSAppend(t *testing.T) {
 	L := lua.NewState()
 	defer L.Close()
-	cliamp := L.NewTable()
-	registerFSAPI(L, cliamp)
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerFSAPI(L, grbfy)
+	L.SetGlobal("grbfy", grbfy)
 
-	tmp := fsAllowedPath("cliamp-test-append-" + t.Name())
+	tmp := fsAllowedPath("grbfy-test-append-" + t.Name())
 	defer os.Remove(tmp)
 
 	L.SetGlobal("path", lua.LString(tmp))
 	err := L.DoString(`
-		cliamp.fs.write(path, "hello")
-		cliamp.fs.append(path, " world")
-		_G.content = cliamp.fs.read(path)
+		grbfy.fs.write(path, "hello")
+		grbfy.fs.append(path, " world")
+		_G.content = grbfy.fs.read(path)
 	`)
 	if err != nil {
 		t.Fatal(err)
@@ -81,19 +81,19 @@ func TestFSAppend(t *testing.T) {
 func TestFSExists(t *testing.T) {
 	L := lua.NewState()
 	defer L.Close()
-	cliamp := L.NewTable()
-	registerFSAPI(L, cliamp)
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerFSAPI(L, grbfy)
+	L.SetGlobal("grbfy", grbfy)
 
-	tmp := fsAllowedPath("cliamp-test-exists-" + t.Name())
+	tmp := fsAllowedPath("grbfy-test-exists-" + t.Name())
 	os.WriteFile(tmp, []byte("x"), 0o644)
 	defer os.Remove(tmp)
 
 	L.SetGlobal("path", lua.LString(tmp))
-	L.SetGlobal("fake", lua.LString(fsAllowedPath("cliamp-definitely-not-here")))
+	L.SetGlobal("fake", lua.LString(fsAllowedPath("grbfy-definitely-not-here")))
 	err := L.DoString(`
-		_G.exists = cliamp.fs.exists(path)
-		_G.not_exists = cliamp.fs.exists(fake)
+		_G.exists = grbfy.fs.exists(path)
+		_G.not_exists = grbfy.fs.exists(fake)
 	`)
 	if err != nil {
 		t.Fatal(err)
@@ -110,17 +110,17 @@ func TestFSExists(t *testing.T) {
 func TestFSRemove(t *testing.T) {
 	L := lua.NewState()
 	defer L.Close()
-	cliamp := L.NewTable()
-	registerFSAPI(L, cliamp)
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerFSAPI(L, grbfy)
+	L.SetGlobal("grbfy", grbfy)
 
-	tmp := fsAllowedPath("cliamp-test-remove-" + t.Name())
+	tmp := fsAllowedPath("grbfy-test-remove-" + t.Name())
 	os.WriteFile(tmp, []byte("x"), 0o644)
 
 	L.SetGlobal("path", lua.LString(tmp))
 	err := L.DoString(`
-		_G.remove_ok = cliamp.fs.remove(path)
-		_G.exists_after = cliamp.fs.exists(path)
+		_G.remove_ok = grbfy.fs.remove(path)
+		_G.exists_after = grbfy.fs.exists(path)
 	`)
 	if err != nil {
 		t.Fatal(err)
@@ -153,19 +153,19 @@ func TestIsWriteAllowed(t *testing.T) {
 func TestFSMkdirAndListdir(t *testing.T) {
 	L := lua.NewState()
 	defer L.Close()
-	cliamp := L.NewTable()
-	registerFSAPI(L, cliamp)
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerFSAPI(L, grbfy)
+	L.SetGlobal("grbfy", grbfy)
 
-	base := fsAllowedPath("cliamp-test-mkdir-" + t.Name())
+	base := fsAllowedPath("grbfy-test-mkdir-" + t.Name())
 	defer os.RemoveAll(base)
 
 	L.SetGlobal("base", lua.LString(base))
 	err := L.DoString(`
-		_G.mkdir_ok = cliamp.fs.mkdir(base .. "/sub")
-		cliamp.fs.write(base .. "/a.txt", "a")
-		cliamp.fs.write(base .. "/b.txt", "b")
-		local names, err = cliamp.fs.listdir(base)
+		_G.mkdir_ok = grbfy.fs.mkdir(base .. "/sub")
+		grbfy.fs.write(base .. "/a.txt", "a")
+		grbfy.fs.write(base .. "/b.txt", "b")
+		local names, err = grbfy.fs.listdir(base)
 		_G.names = names
 		_G.err = err
 	`)
@@ -187,11 +187,11 @@ func TestFSMkdirAndListdir(t *testing.T) {
 func TestFSMkdirRejectsOutsideAllowlist(t *testing.T) {
 	L := lua.NewState()
 	defer L.Close()
-	cliamp := L.NewTable()
-	registerFSAPI(L, cliamp)
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerFSAPI(L, grbfy)
+	L.SetGlobal("grbfy", grbfy)
 
-	err := L.DoString(fmt.Sprintf("cliamp.fs.mkdir(%q)", fsDisallowedPath()))
+	err := L.DoString(fmt.Sprintf("grbfy.fs.mkdir(%q)", fsDisallowedPath()))
 	if err == nil {
 		t.Fatal("expected error for path outside allowlist")
 	}
@@ -200,8 +200,8 @@ func TestFSMkdirRejectsOutsideAllowlist(t *testing.T) {
 func TestMusicDirIsAllowed(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	path := filepath.Join(home, "Music", "cliamp", "album", "01.mp3")
+	path := filepath.Join(home, "Music", "grbfy", "album", "01.mp3")
 	if !isWriteAllowed(path) {
-		t.Errorf("~/Music/cliamp/... should be writable")
+		t.Errorf("~/Music/grbfy/... should be writable")
 	}
 }

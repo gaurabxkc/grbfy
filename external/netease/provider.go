@@ -437,7 +437,7 @@ func extractBrowserCookieHeader(ctx context.Context, browser string) (string, er
 	if _, err := exec.LookPath("yt-dlp"); err != nil {
 		return "", fmt.Errorf("yt-dlp not found. Install with: %s", ytDLPInstallHint())
 	}
-	tmp, err := os.CreateTemp("", "cliamp-netease-cookies-*.txt")
+	tmp, err := os.CreateTemp("", "grbfy-netease-cookies-*.txt")
 	if err != nil {
 		return "", err
 	}

@@ -1,4 +1,4 @@
-// Package config handles loading user configuration from ~/.config/cliamp/config.toml.
+// Package config handles loading user configuration from ~/.config/grbfy/config.toml.
 package config
 
 import (
@@ -92,7 +92,7 @@ type LyrionConfig struct {
 	User     string
 	Password string
 	// ShowUnplayable includes tracks and playlists contributed by LMS server
-	// plugins, which the server cannot stream to cliamp. Hidden by default.
+	// plugins, which the server cannot stream to grbfy. Hidden by default.
 	ShowUnplayable bool
 }
 
@@ -422,7 +422,7 @@ func defaultConfig() Config {
 	}
 }
 
-// Load reads the config file from ~/.config/cliamp/config.toml.
+// Load reads the config file from ~/.config/grbfy/config.toml.
 // Returns defaults if the file does not exist.
 func Load() (Config, error) {
 	cfg := defaultConfig()

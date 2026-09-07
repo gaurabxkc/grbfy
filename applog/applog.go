@@ -1,9 +1,9 @@
-// Package applog provides logging for cliamp.
+// Package applog provides logging for grbfy.
 //
 // Two sinks are layered behind one API:
 //
 //   - A file sink, written through log/slog, for diagnostic logs the user
-//     reads after the fact (~/.config/cliamp/cliamp.log).
+//     reads after the fact (~/.config/grbfy/grbfy.log).
 //   - An in-memory ring buffer drained by the TUI footer for short-lived,
 //     user-facing messages. The buffer exists because writing to stderr
 //     would corrupt the TUI.

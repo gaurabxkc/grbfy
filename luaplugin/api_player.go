@@ -2,11 +2,11 @@ package luaplugin
 
 import lua "github.com/yuin/gopher-lua"
 
-// registerPlayerAPI adds the read-only cliamp.player.* table.
-func registerPlayerAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider) {
+// registerPlayerAPI adds the read-only grbfy.player.* table.
+func registerPlayerAPI(L *lua.LState, grbfy *lua.LTable, state *StateProvider) {
 	tbl := L.NewTable()
 
-	// cliamp.player.state() -> "playing" | "paused" | "stopped"
+	// grbfy.player.state() -> "playing" | "paused" | "stopped"
 	L.SetField(tbl, "state", L.NewFunction(func(L *lua.LState) int {
 		if state.PlayerState != nil {
 			L.Push(lua.LString(state.PlayerState()))
@@ -16,7 +16,7 @@ func registerPlayerAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider) 
 		return 1
 	}))
 
-	// cliamp.player.position() -> number (seconds)
+	// grbfy.player.position() -> number (seconds)
 	L.SetField(tbl, "position", L.NewFunction(func(L *lua.LState) int {
 		if state.Position != nil {
 			L.Push(lua.LNumber(state.Position()))
@@ -26,7 +26,7 @@ func registerPlayerAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider) 
 		return 1
 	}))
 
-	// cliamp.player.duration() -> number (seconds)
+	// grbfy.player.duration() -> number (seconds)
 	L.SetField(tbl, "duration", L.NewFunction(func(L *lua.LState) int {
 		if state.Duration != nil {
 			L.Push(lua.LNumber(state.Duration()))
@@ -36,7 +36,7 @@ func registerPlayerAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider) 
 		return 1
 	}))
 
-	// cliamp.player.volume() -> number (dB)
+	// grbfy.player.volume() -> number (dB)
 	L.SetField(tbl, "volume", L.NewFunction(func(L *lua.LState) int {
 		if state.Volume != nil {
 			L.Push(lua.LNumber(state.Volume()))
@@ -46,7 +46,7 @@ func registerPlayerAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider) 
 		return 1
 	}))
 
-	// cliamp.player.speed() -> number (ratio)
+	// grbfy.player.speed() -> number (ratio)
 	L.SetField(tbl, "speed", L.NewFunction(func(L *lua.LState) int {
 		if state.Speed != nil {
 			L.Push(lua.LNumber(state.Speed()))
@@ -56,7 +56,7 @@ func registerPlayerAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider) 
 		return 1
 	}))
 
-	// cliamp.player.mono() -> boolean
+	// grbfy.player.mono() -> boolean
 	L.SetField(tbl, "mono", L.NewFunction(func(L *lua.LState) int {
 		if state.Mono != nil {
 			L.Push(lua.LBool(state.Mono()))
@@ -66,7 +66,7 @@ func registerPlayerAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider) 
 		return 1
 	}))
 
-	// cliamp.player.repeat_mode() -> "off" | "all" | "one"
+	// grbfy.player.repeat_mode() -> "off" | "all" | "one"
 	L.SetField(tbl, "repeat_mode", L.NewFunction(func(L *lua.LState) int {
 		if state.RepeatMode != nil {
 			L.Push(lua.LString(state.RepeatMode()))
@@ -76,7 +76,7 @@ func registerPlayerAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider) 
 		return 1
 	}))
 
-	// cliamp.player.shuffle() -> boolean
+	// grbfy.player.shuffle() -> boolean
 	L.SetField(tbl, "shuffle", L.NewFunction(func(L *lua.LState) int {
 		if state.Shuffle != nil {
 			L.Push(lua.LBool(state.Shuffle()))
@@ -86,7 +86,7 @@ func registerPlayerAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider) 
 		return 1
 	}))
 
-	// cliamp.player.eq_bands() -> table of 10 dB values
+	// grbfy.player.eq_bands() -> table of 10 dB values
 	L.SetField(tbl, "eq_bands", L.NewFunction(func(L *lua.LState) int {
 		t := L.NewTable()
 		if state.EQBands != nil {
@@ -99,5 +99,5 @@ func registerPlayerAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider) 
 		return 1
 	}))
 
-	L.SetField(cliamp, "player", tbl)
+	L.SetField(grbfy, "player", tbl)
 }

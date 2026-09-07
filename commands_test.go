@@ -45,7 +45,7 @@ func TestInverseBoolFlags(t *testing.T) {
 				return err
 			}
 
-			if err := app.Run(context.Background(), []string{"cliamp", tt.flag}); err != nil {
+			if err := app.Run(context.Background(), []string{"grbfy", tt.flag}); err != nil {
 				t.Fatalf("Run: %v", err)
 			}
 			value := tt.get(got)
