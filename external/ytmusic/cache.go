@@ -17,7 +17,7 @@ import (
 const cacheTTL = 24 * time.Hour
 
 // ytCache stores playlists and tracks on disk for fast startup.
-// Path: ~/.config/cliamp/ytmusic_cache.json
+// Path: ~/.config/grbfy/ytmusic_cache.json
 type ytCache struct {
 	Scope       string                     `json:"scope"`
 	Playlists   []playlistEntry            `json:"playlists,omitempty"`

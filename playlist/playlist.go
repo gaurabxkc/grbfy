@@ -314,9 +314,14 @@ func (t Track) IsLive() bool {
 }
 
 // DisplayName returns a formatted display string for the track.
+//
+// Title first: a listener scanning a list is looking for the song, and leading
+// with the artist buries it — every row of an album or an artist's playlist
+// then starts with the same words. Only display code calls this; exports, IPC
+// and media-session metadata carry Title and Artist separately.
 func (t Track) DisplayName() string {
 	if t.Artist != "" {
-		return t.Artist + " - " + t.Title
+		return t.Title + " - " + t.Artist
 	}
 	return t.Title
 }

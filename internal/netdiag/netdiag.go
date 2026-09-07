@@ -34,7 +34,7 @@ func explain(goos string, err error) error {
 	if !ok || addr == nil || !isLocalNetwork(addr.IP) {
 		return err
 	}
-	return fmt.Errorf("%w (macOS may be denying Local Network access: open System Settings > Privacy & Security > Local Network, enable it for your terminal app, then restart cliamp)", err)
+	return fmt.Errorf("%w (macOS may be denying Local Network access: open System Settings > Privacy & Security > Local Network, enable it for your terminal app, then restart grbfy)", err)
 }
 
 // isLocalNetwork reports whether ip falls in a range covered by macOS's Local

@@ -18,7 +18,7 @@ import (
 
 var client = &http.Client{Timeout: 8 * time.Second}
 
-const userAgent = "cliamp/1.0 (https://github.com/bjarneo/cliamp)"
+const userAgent = "grbfy/1.0 (https://github.com/bjarneo/cliamp)"
 
 // Resolver reports how to fetch now-playing metadata for streamURL, or ok=false
 // when the URL is not a recognized broadcaster. It satisfies

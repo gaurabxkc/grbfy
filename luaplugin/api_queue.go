@@ -2,17 +2,17 @@ package luaplugin
 
 import lua "github.com/yuin/gopher-lua"
 
-// registerQueueAPI adds cliamp.queue.* to the cliamp table.
+// registerQueueAPI adds grbfy.queue.* to the grbfy table.
 //
 // Reads (list/count/current) need no permission and pull from the StateProvider.
 // Mutators (add/jump/remove/move) require permissions = {"control"} and route
 // through the ControlProvider, which dispatches them onto the UI loop.
 //
-// All indices are 0-based, matching cliamp.queue.current().
-func registerQueueAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider, ctrl *ControlProvider, p *Plugin, logger *pluginLogger) {
+// All indices are 0-based, matching grbfy.queue.current().
+func registerQueueAPI(L *lua.LState, grbfy *lua.LTable, state *StateProvider, ctrl *ControlProvider, p *Plugin, logger *pluginLogger) {
 	tbl := L.NewTable()
 
-	// cliamp.queue.list() -> array of {title, artist, album, path, index, queued}
+	// grbfy.queue.list() -> array of {title, artist, album, path, index, queued}
 	L.SetField(tbl, "list", L.NewFunction(func(L *lua.LState) int {
 		out := L.NewTable()
 		if state.QueueList != nil {
@@ -31,7 +31,7 @@ func registerQueueAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider, c
 		return 1
 	}))
 
-	// cliamp.queue.count() -> number of tracks
+	// grbfy.queue.count() -> number of tracks
 	L.SetField(tbl, "count", L.NewFunction(func(L *lua.LState) int {
 		n := 0
 		if state.PlaylistCount != nil {
@@ -41,7 +41,7 @@ func registerQueueAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider, c
 		return 1
 	}))
 
-	// cliamp.queue.current() -> 0-based index of the current track
+	// grbfy.queue.current() -> 0-based index of the current track
 	L.SetField(tbl, "current", L.NewFunction(func(L *lua.LState) int {
 		idx := 0
 		if state.CurrentIndex != nil {
@@ -63,7 +63,7 @@ func registerQueueAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider, c
 		return true
 	}
 
-	// cliamp.queue.add(path) — resolve a file/dir/URL and append to the playlist.
+	// grbfy.queue.add(path) — resolve a file/dir/URL and append to the playlist.
 	L.SetField(tbl, "add", L.NewFunction(func(L *lua.LState) int {
 		path := L.CheckString(1)
 		if guard("add") && ctrl.QueueAdd != nil {
@@ -72,7 +72,7 @@ func registerQueueAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider, c
 		return 0
 	}))
 
-	// cliamp.queue.jump(index) — make index the current track and play it.
+	// grbfy.queue.jump(index) — make index the current track and play it.
 	L.SetField(tbl, "jump", L.NewFunction(func(L *lua.LState) int {
 		index := L.CheckInt(1)
 		if guard("jump") && ctrl.QueueJump != nil {
@@ -81,7 +81,7 @@ func registerQueueAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider, c
 		return 0
 	}))
 
-	// cliamp.queue.remove(index) — remove the track at index.
+	// grbfy.queue.remove(index) — remove the track at index.
 	L.SetField(tbl, "remove", L.NewFunction(func(L *lua.LState) int {
 		index := L.CheckInt(1)
 		if guard("remove") && ctrl.QueueRemove != nil {
@@ -90,7 +90,7 @@ func registerQueueAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider, c
 		return 0
 	}))
 
-	// cliamp.queue.move(from, to) — reorder a track.
+	// grbfy.queue.move(from, to) — reorder a track.
 	L.SetField(tbl, "move", L.NewFunction(func(L *lua.LState) int {
 		from := L.CheckInt(1)
 		to := L.CheckInt(2)
@@ -100,5 +100,5 @@ func registerQueueAPI(L *lua.LState, cliamp *lua.LTable, state *StateProvider, c
 		return 0
 	}))
 
-	L.SetField(cliamp, "queue", tbl)
+	L.SetField(grbfy, "queue", tbl)
 }

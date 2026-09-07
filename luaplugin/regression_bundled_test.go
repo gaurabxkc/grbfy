@@ -13,7 +13,7 @@ import (
 // API. It loads every first-party plugin shipped in the repo's plugins/
 // directory through a real Manager and asserts they all register cleanly.
 //
-// Any change that renames or removes an existing cliamp.* function, event, or
+// Any change that renames or removes an existing grbfy.* function, event, or
 // permission will break one of these plugins and fail here. Keep it green by
 // only ever ADDING to the plugin surface, never altering the existing shape.
 func TestBundledPluginsLoad(t *testing.T) {
@@ -36,7 +36,7 @@ func TestBundledPluginsLoad(t *testing.T) {
 	// Seed an isolated HOME so appdir.PluginDir() resolves into a temp tree.
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	pluginDir := filepath.Join(home, ".config", "cliamp", "plugins")
+	pluginDir := filepath.Join(home, ".config", "grbfy", "plugins")
 	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
 		t.Fatalf("mkdir plugin dir: %v", err)
 	}

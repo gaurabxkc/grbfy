@@ -7,7 +7,7 @@ import (
 	"github.com/bjarneo/cliamp/resolve"
 )
 
-// PluginQueueMsg is sent by Lua plugins (cliamp.queue.*) to mutate the queue.
+// PluginQueueMsg is sent by Lua plugins (grbfy.queue.*) to mutate the queue.
 // Mutations are routed through the Update loop rather than applied directly
 // from the plugin goroutine so the model's derived state (cursor, current
 // index, playback) stays consistent. Indices are 0-based.
@@ -18,7 +18,7 @@ type PluginQueueMsg struct {
 	To    int    // move (to)
 }
 
-// pluginQueueAddedMsg carries tracks resolved for a cliamp.queue.add() call
+// pluginQueueAddedMsg carries tracks resolved for a grbfy.queue.add() call
 // back to the Update loop, which appends them.
 type pluginQueueAddedMsg struct{ tracks []playlist.Track }
 

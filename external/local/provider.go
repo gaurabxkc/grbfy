@@ -1,5 +1,5 @@
 // Package local implements a playlist.Provider backed by TOML files in
-// ~/.config/cliamp/playlists/.
+// ~/.config/grbfy/playlists/.
 package local
 
 import (
@@ -39,12 +39,12 @@ var (
 
 // Provider reads and writes TOML-based playlists stored on disk.
 type Provider struct {
-	dir       string // e.g. ~/.config/cliamp/playlists/
+	dir       string // e.g. ~/.config/grbfy/playlists/
 	history   *history.Store
 	favorites *favorites.Store
 }
 
-// New creates a Provider using ~/.config/cliamp/playlists/ as the base directory.
+// New creates a Provider using ~/.config/grbfy/playlists/ as the base directory.
 func New() *Provider {
 	dir, err := appdir.Dir()
 	if err != nil {

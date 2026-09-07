@@ -124,7 +124,7 @@ func New(q Quality) (*Player, error) {
 	// opens the device on a background goroutine and only stores the error,
 	// so speaker.Init above returns nil even when every candidate device
 	// failed. Without this check playback silently no-ops while the UI and
-	// `cliamp status` keep reporting "playing".
+	// `grbfy status` keep reporting "playing".
 	if err := speaker.Suspend(); err != nil {
 		return nil, fmt.Errorf("audio output unavailable: %w%s", err, audioOutputHint())
 	}

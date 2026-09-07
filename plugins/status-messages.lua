@@ -1,8 +1,8 @@
 -- status-messages.lua — Demo of cliamp.message(): surface playback events
 -- as transient messages in the status bar at the bottom of the UI.
 --
--- Install by copying (or symlinking) this file to ~/.config/cliamp/plugins/
--- and restart cliamp.
+-- Install by copying (or symlinking) this file to ~/.config/grbfy/plugins/
+-- and restart grbfy.
 
 local p = plugin.register({
     name = "status-messages",
@@ -11,7 +11,7 @@ local p = plugin.register({
 })
 
 p:on("app.start", function()
-    cliamp.message("cliamp ready", 2)
+    grbfy.message("grbfy ready", 2)
 end)
 
 p:on("track.change", function(track)

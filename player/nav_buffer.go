@@ -108,7 +108,7 @@ func navBufferGet(ctx context.Context, rawURL string) (*http.Response, error) {
 	if err != nil {
 		return nil, fmt.Errorf("nav buffer request: %w", err)
 	}
-	req.Header.Set("User-Agent", "cliamp/1.0 (https://github.com/bjarneo/cliamp)")
+	req.Header.Set("User-Agent", "grbfy/1.0 (https://github.com/bjarneo/cliamp)")
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -124,7 +124,7 @@ func navBufferGet(ctx context.Context, rawURL string) (*http.Response, error) {
 // newNavBufferFor builds the file-backed buffer for an opened response.
 // On error the response body is closed and cancel invoked.
 func newNavBufferFor(resp *http.Response, cancel context.CancelFunc) (*navBuffer, error) {
-	file, err := os.CreateTemp("", "cliamp-nav-*")
+	file, err := os.CreateTemp("", "grbfy-nav-*")
 	if err != nil {
 		resp.Body.Close()
 		cancel()

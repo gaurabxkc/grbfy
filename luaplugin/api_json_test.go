@@ -10,13 +10,13 @@ import (
 func TestJSONEncodeDecode(t *testing.T) {
 	L := lua.NewState()
 	defer L.Close()
-	cliamp := L.NewTable()
-	registerJSONAPI(L, cliamp)
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerJSONAPI(L, grbfy)
+	L.SetGlobal("grbfy", grbfy)
 
 	err := L.DoString(`
-		local encoded = cliamp.json.encode({name = "test", count = 42})
-		local decoded = cliamp.json.decode(encoded)
+		local encoded = grbfy.json.encode({name = "test", count = 42})
+		local decoded = grbfy.json.decode(encoded)
 		_G.name = decoded.name
 		_G.count = decoded.count
 	`)
@@ -35,12 +35,12 @@ func TestJSONEncodeDecode(t *testing.T) {
 func TestJSONDecodeInvalid(t *testing.T) {
 	L := lua.NewState()
 	defer L.Close()
-	cliamp := L.NewTable()
-	registerJSONAPI(L, cliamp)
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerJSONAPI(L, grbfy)
+	L.SetGlobal("grbfy", grbfy)
 
 	err := L.DoString(`
-		local result, errmsg = cliamp.json.decode("not json")
+		local result, errmsg = grbfy.json.decode("not json")
 		_G.result = result
 		_G.errmsg = errmsg
 	`)
@@ -59,12 +59,12 @@ func TestJSONDecodeInvalid(t *testing.T) {
 func TestJSONEncodeArray(t *testing.T) {
 	L := lua.NewState()
 	defer L.Close()
-	cliamp := L.NewTable()
-	registerJSONAPI(L, cliamp)
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerJSONAPI(L, grbfy)
+	L.SetGlobal("grbfy", grbfy)
 
 	err := L.DoString(`
-		_G.result = cliamp.json.encode({1, 2, 3})
+		_G.result = grbfy.json.encode({1, 2, 3})
 	`)
 	if err != nil {
 		t.Fatal(err)
@@ -130,7 +130,7 @@ func TestLuaToGoBreaksTableCycles(t *testing.T) {
 	self.RawSetString("left", left)
 
 	// A cycle must not recurse until the Go stack overflows, which would kill
-	// cliamp instead of failing inside the plugin sandbox.
+	// grbfy instead of failing inside the plugin sandbox.
 	got, ok := luaToGo(self).(map[string]any)
 	if !ok {
 		t.Fatalf("luaToGo returned %T, want map", luaToGo(self))
@@ -202,14 +202,14 @@ func TestLuaToGoLimitsNestingDepth(t *testing.T) {
 func TestJSONEncodeSurvivesCyclicTable(t *testing.T) {
 	L := lua.NewState()
 	defer L.Close()
-	cliamp := L.NewTable()
-	registerJSONAPI(L, cliamp)
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerJSONAPI(L, grbfy)
+	L.SetGlobal("grbfy", grbfy)
 
 	if err := L.DoString(`
 		local t = {name = "loop"}
 		t.self = t
-		_G.result = cliamp.json.encode(t)
+		_G.result = grbfy.json.encode(t)
 	`); err != nil {
 		t.Fatal(err)
 	}

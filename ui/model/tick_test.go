@@ -67,7 +67,7 @@ func (f *samplingFakeEngine) StereoSamplesInto(dst [][2]float64) int {
 }
 
 func TestMain(m *testing.M) {
-	os.Unsetenv("CLIAMP_CONFIG_DIR")
+	os.Unsetenv("GRBFY_CONFIG_DIR")
 	os.Unsetenv("XDG_CONFIG_HOME")
 
 	sr := player.DeviceSampleRate()

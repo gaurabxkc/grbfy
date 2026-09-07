@@ -1,9 +1,9 @@
-// Package lyrion implements a cliamp provider for Lyrion Music Server (LMS,
+// Package lyrion implements a grbfy provider for Lyrion Music Server (LMS,
 // formerly Logitech Media Server).
 //
 // The library is browsed over LMS's JSON-RPC endpoint (POST /jsonrpc.js) and
 // tracks are played from its HTTP file endpoint (/music/<track_id>/download)
-// by cliamp's own playback engine. cliamp does not act as, or drive, an LMS
+// by grbfy's own playback engine. grbfy does not act as, or drive, an LMS
 // player — see docs/lyrion.md for what that implies.
 package lyrion
 
@@ -45,7 +45,7 @@ const (
 
 // TrackURIPrefix is the custom URI scheme for Lyrion tracks. Track paths carry
 // this rather than a direct HTTP URL so that no credential is ever written to
-// a track: cliamp persists Track.Path to resume state and to the play history,
+// a track: grbfy persists Track.Path to resume state and to the play history,
 // and LMS authenticates with the user's actual password rather than a
 // revocable token. ResolveSource expands it at play time.
 const TrackURIPrefix = "lyrion://track/"
@@ -134,7 +134,7 @@ func (c *Client) Ping() error {
 // request issues one JSON-RPC command and decodes result into out.
 //
 // The player slot of the envelope is deliberately empty: every command this
-// provider sends is a server-scoped library query, and cliamp does not address
+// provider sends is a server-scoped library query, and grbfy does not address
 // an LMS player.
 func (c *Client) request(ctx context.Context, command []any, out any) error {
 	body, err := json.Marshal(map[string]any{
@@ -151,7 +151,7 @@ func (c *Client) request(ctx context.Context, command []any, out any) error {
 		return fmt.Errorf("lyrion: %s: %w", c.url, err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "cliamp/1.0 (https://github.com/bjarneo/cliamp)")
+	req.Header.Set("User-Agent", "grbfy/1.0 (https://github.com/bjarneo/cliamp)")
 	if c.user != "" || c.password != "" {
 		req.SetBasicAuth(c.user, c.password)
 	}
@@ -396,7 +396,7 @@ func (c *Client) toTracks(songs []song) []playlist.Track {
 	out := make([]playlist.Track, 0, len(songs))
 	for _, s := range songs {
 		t := c.toTrack(s)
-		// Plugin-contributed tracks cannot be streamed to cliamp at all, so by
+		// Plugin-contributed tracks cannot be streamed to grbfy at all, so by
 		// default they are omitted rather than listed as dead entries. Setting
 		// show_unplayable surfaces them, flagged, for a complete view.
 		if t.Unplayable && !c.showUnplayable {
@@ -429,9 +429,9 @@ func (c *Client) toTrack(s song) playlist.Track {
 // A library can also hold tracks contributed by server plugins (Spotify via
 // Spotty, and similar), which carry their own URL scheme. LMS accepts a
 // download request for those but never sends any bytes — the connection just
-// hangs — so they are marked Unplayable and cliamp skips past them instead of
+// hangs — so they are marked Unplayable and grbfy skips past them instead of
 // stalling. Playing them would mean speaking each plugin's protocol, which is
-// what cliamp's own providers for those services already do.
+// what grbfy's own providers for those services already do.
 //
 // A track with no URL at all is treated as local: the caller may simply not
 // have requested the url tag, and refusing to play everything would be worse

@@ -118,7 +118,7 @@ func credsFromClient(c *client, privateKey string) *storedCreds {
 
 // oauthCallbackHTML is shown in the browser once the redirect is captured.
 const oauthCallbackHTML = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>cliamp</title></head>
+<html><head><meta charset="utf-8"><title>grbfy</title></head>
 <body style="font-family:system-ui;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#1a1a2e;color:#e0e0e0">
 <div style="text-align:center">
 <h2>Signed in to Qobuz</h2>

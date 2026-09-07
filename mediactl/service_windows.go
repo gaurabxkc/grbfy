@@ -144,7 +144,7 @@ func hotkeyMsg(id int32) (tea.Msg, bool) {
 }
 
 // registerHotKey best-effort registers a media key: failure (e.g. another
-// process already holds it) just means that key won't control cliamp.
+// process already holds it) just means that key won't control grbfy.
 func registerHotKey(id int, vk uint32) {
 	procRegisterHotKey.Call(0, uintptr(id), uintptr(modNoRepeat), uintptr(vk))
 }

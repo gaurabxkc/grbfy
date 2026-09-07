@@ -42,7 +42,7 @@ func TestProtocolRoundTrip(t *testing.T) {
 	}
 	body := string(entry)
 	for _, want := range []string{
-		"MimeType=x-scheme-handler/cliamp;",
+		"MimeType=x-scheme-handler/grbfy;",
 		" open %u",
 		"Terminal=true",
 		"NoDisplay=true",
@@ -86,7 +86,7 @@ func TestProtocolUnregisterWhenAbsent(t *testing.T) {
 }
 
 // TestProtocolRegisterIsIdempotent covers re-running register, which happens
-// whenever someone reinstalls cliamp to a new path.
+// whenever someone reinstalls grbfy to a new path.
 func TestProtocolRegisterIsIdempotent(t *testing.T) {
 	t.Setenv("XDG_DATA_HOME", t.TempDir())
 	t.Setenv("PATH", t.TempDir())
@@ -162,12 +162,12 @@ func TestDesktopExecArgQuoting(t *testing.T) {
 		path string
 		want string
 	}{
-		{"/usr/bin/cliamp", `"/usr/bin/cliamp"`},
-		{"/home/a b/cliamp", `"/home/a b/cliamp"`},
-		{"/home/a\"b/cliamp", "\"/home/a\\\"b/cliamp\""},
-		{`/home/a\b/cliamp`, `"/home/a\\b/cliamp"`},
-		{"/home/a$b/cliamp", `"/home/a\$b/cliamp"`},
-		{"/home/a`b/cliamp", "\"/home/a\\`b/cliamp\""},
+		{"/usr/bin/grbfy", `"/usr/bin/grbfy"`},
+		{"/home/a b/grbfy", `"/home/a b/grbfy"`},
+		{"/home/a\"b/grbfy", "\"/home/a\\\"b/grbfy\""},
+		{`/home/a\b/grbfy`, `"/home/a\\b/grbfy"`},
+		{"/home/a$b/grbfy", `"/home/a\$b/grbfy"`},
+		{"/home/a`b/grbfy", "\"/home/a\\`b/grbfy\""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
@@ -181,7 +181,7 @@ func TestDesktopExecArgQuoting(t *testing.T) {
 // TestProtocolStatusFindsSystemWideEntry covers the install.sh case: for an
 // install outside the home directory the handler entry lands in a system
 // applications directory. Status must see it, or a user would be told the
-// scheme is unregistered while links still open cliamp.
+// scheme is unregistered while links still open grbfy.
 func TestProtocolStatusFindsSystemWideEntry(t *testing.T) {
 	systemShare := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", t.TempDir())

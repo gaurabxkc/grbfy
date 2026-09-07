@@ -54,7 +54,7 @@ type Pins struct {
 	path   string
 }
 
-// LoadPins reads pinned places from ~/.config/cliamp/radio_countries.toml.
+// LoadPins reads pinned places from ~/.config/grbfy/radio_countries.toml.
 // A missing or unreadable file yields an empty, still-usable set.
 func LoadPins() *Pins {
 	p := &Pins{}

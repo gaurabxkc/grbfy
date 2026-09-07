@@ -1,4 +1,4 @@
-// Package spotify integrates Spotify playback into cliamp via go-librespot.
+// Package spotify integrates Spotify playback into grbfy via go-librespot.
 package spotify
 
 import (
@@ -131,7 +131,7 @@ func (s *spotifyStreamer) Seek(p int) error {
 	return s.source.SetPositionMs(ms)
 }
 
-// Close cancels stream I/O and releases cliamp's references. AudioSource does
+// Close cancels stream I/O and releases grbfy's references. AudioSource does
 // not expose Close intentionally; calling the concrete C-backed decoder Close
 // methods during a track handoff can crash go-librespot.
 func (s *spotifyStreamer) Close() error {

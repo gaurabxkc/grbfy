@@ -2,11 +2,11 @@ package luaplugin
 
 import lua "github.com/yuin/gopher-lua"
 
-// registerControlAPI adds cliamp.player control methods (next, prev, play_pause,
-// stop, set_volume, set_speed, seek, toggle_mono, set_eq_band) to the cliamp table.
+// registerControlAPI adds grbfy.player control methods (next, prev, play_pause,
+// stop, set_volume, set_speed, seek, toggle_mono, set_eq_band) to the grbfy table.
 // These are only functional if the plugin declared permissions = {"control"}.
-func registerControlAPI(L *lua.LState, cliamp *lua.LTable, ctrl *ControlProvider, p *Plugin, logger *pluginLogger) {
-	playerTbl := L.GetField(cliamp, "player")
+func registerControlAPI(L *lua.LState, grbfy *lua.LTable, ctrl *ControlProvider, p *Plugin, logger *pluginLogger) {
+	playerTbl := L.GetField(grbfy, "player")
 	tbl, ok := playerTbl.(*lua.LTable)
 	if !ok {
 		return

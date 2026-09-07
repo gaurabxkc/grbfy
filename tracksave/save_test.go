@@ -10,7 +10,7 @@ import (
 
 func TestSaveCopiesTemporaryDownload(t *testing.T) {
 	home := setTestHome(t)
-	source, err := os.CreateTemp("", "cliamp-save-*.flac")
+	source, err := os.CreateTemp("", "grbfy-save-*.flac")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func TestSaveCopiesTemporaryDownload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := filepath.Join(home, "Music", "cliamp", "Artist - Song.flac")
+	want := filepath.Join(home, "Music", "grbfy", "Artist - Song.flac")
 	if destination != want {
 		t.Fatalf("destination = %q, want %q", destination, want)
 	}

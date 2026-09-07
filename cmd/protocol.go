@@ -1,9 +1,9 @@
-// protocol.go implements `cliamp protocol register|unregister|status`, which
-// wires the cliamp:// URI scheme into the desktop environment so links open
-// in cliamp.
+// protocol.go implements `grbfy protocol register|unregister|status`, which
+// wires the grbfy:// URI scheme into the desktop environment so links open
+// in grbfy.
 //
 // Registration is deliberately opt-in rather than something install.sh does.
-// A registered scheme lets any web page hand cliamp a target with one click,
+// A registered scheme lets any web page hand grbfy a target with one click,
 // which is a capability the user should grant on purpose and be able to take
 // back with one command.
 package cmd
@@ -18,9 +18,9 @@ import (
 
 // SchemeName is the URI scheme registered with the desktop environment. It
 // matches deeplink.Scheme; the two are kept in step by TestSchemeMatches.
-const SchemeName = "cliamp"
+const SchemeName = "grbfy"
 
-// ProtocolRegister makes this binary the system handler for cliamp:// links.
+// ProtocolRegister makes this binary the system handler for grbfy:// links.
 func ProtocolRegister(out io.Writer) error {
 	exe, err := handlerExecutable()
 	if err != nil {
@@ -33,7 +33,7 @@ func ProtocolRegister(out io.Writer) error {
 	fmt.Fprintf(out, "Registered %s:// -> %s\n", SchemeName, exe)
 	fmt.Fprintf(out, "Handler: %s\n", location)
 	fmt.Fprintf(out, "\nTest it with:\n  %s open '%s://play?url=https://example.com/stream.mp3'\n", exe, SchemeName)
-	fmt.Fprintf(out, "\nRemove it with:\n  cliamp protocol unregister\n")
+	fmt.Fprintf(out, "\nRemove it with:\n  grbfy protocol unregister\n")
 	return nil
 }
 
@@ -41,7 +41,7 @@ func ProtocolRegister(out io.Writer) error {
 //
 // install.sh registers the scheme too, and for a system-wide install it does
 // so under a root-owned directory. Reporting those separately matters: saying
-// "nothing to do" while links still open cliamp would be worse than saying
+// "nothing to do" while links still open grbfy would be worse than saying
 // which file is left and why.
 func ProtocolUnregister(out io.Writer) error {
 	removed, blocked, err := unregisterHandler()
@@ -75,7 +75,7 @@ func ProtocolStatus(out io.Writer) error {
 	}
 	if len(locations) == 0 {
 		fmt.Fprintf(out, "%s:// is not registered\n", SchemeName)
-		fmt.Fprintf(out, "Register it with:\n  cliamp protocol register\n")
+		fmt.Fprintf(out, "Register it with:\n  grbfy protocol register\n")
 		return nil
 	}
 	fmt.Fprintf(out, "%s:// is registered\n", SchemeName)
@@ -95,7 +95,7 @@ func ProtocolStatus(out io.Writer) error {
 func handlerExecutable() (string, error) {
 	exe, err := os.Executable()
 	if err != nil {
-		return "", fmt.Errorf("locating the cliamp binary: %w", err)
+		return "", fmt.Errorf("locating the grbfy binary: %w", err)
 	}
 	resolved, err := filepath.EvalSymlinks(exe)
 	if err != nil {

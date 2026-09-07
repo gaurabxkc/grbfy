@@ -186,7 +186,7 @@ func newSessionFromStored(ctx context.Context, clientID string, creds *storedCre
 		if silentOnly {
 			// Continue without a token source — already-loaded tracks still stream
 			// via spclient; new Web API calls will return ErrNeedsAuth.
-			applog.UserError("spotify: stored auth no longer valid; run 'cliamp spotify reset' or sign in again to fix")
+			applog.UserError("spotify: stored auth no longer valid; run 'grbfy spotify reset' or sign in again to fix")
 			s := &Session{sess: sess, devID: devID, clientID: clientID}
 			if err := saveCreds(&storedCreds{
 				Username:     sess.Username(),
@@ -235,7 +235,7 @@ func newSessionFromStored(ctx context.Context, clientID string, creds *storedCre
 	return s, nil
 }
 
-// oauthScopes are the Spotify Web API scopes needed for cliamp.
+// oauthScopes are the Spotify Web API scopes needed for grbfy.
 // See: https://developer.spotify.com/documentation/web-api/concepts/scopes
 var oauthScopes = []string{
 	// Playlist browsing
@@ -341,7 +341,7 @@ func isInvalidGrant(err error) bool {
 
 // oauthCallbackHTML is the response sent to the browser after a successful OAuth2 callback.
 const oauthCallbackHTML = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>cliamp</title></head>
+<html><head><meta charset="utf-8"><title>grbfy</title></head>
 <body style="font-family:system-ui;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#1a1a2e;color:#e0e0e0">
 <div style="text-align:center">
 <h2>✅ Authenticated!</h2>
@@ -560,7 +560,7 @@ func newInteractiveSession(ctx context.Context, clientID string) (*Session, erro
 }
 
 // initPlayer creates the go-librespot player. We only use NewStream() for
-// decoded AudioSources — audio output is routed through cliamp's Beep pipeline,
+// decoded AudioSources — audio output is routed through grbfy's Beep pipeline,
 // not go-librespot's output backend.
 func (s *Session) initPlayer() error {
 	// go-librespot uses this for media restriction checks but Premium
@@ -623,7 +623,7 @@ func (s *Session) webApiWithBody(ctx context.Context, method, path string, query
 	s.mu.RUnlock()
 
 	if ts == nil {
-		return nil, fmt.Errorf("spotify: web api token unavailable, run 'cliamp spotify reset' and sign in again: %w", playlist.ErrNeedsAuth)
+		return nil, fmt.Errorf("spotify: web api token unavailable, run 'grbfy spotify reset' and sign in again: %w", playlist.ErrNeedsAuth)
 	}
 	tok, err := ts.Token()
 	if err != nil {

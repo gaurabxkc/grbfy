@@ -1,4 +1,4 @@
-// Package audiobookshelf implements a cliamp provider for an Audiobookshelf
+// Package audiobookshelf implements a grbfy provider for an Audiobookshelf
 // server, exposing its audiobooks and podcasts as playlists.
 package audiobookshelf
 

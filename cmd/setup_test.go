@@ -256,7 +256,7 @@ func TestNetEaseSetupBody(t *testing.T) {
 // screen kept showing "Validation failed" / the raw error instead of the
 // intended "Saved without verification" message.
 func TestSaveAnywayClearsStaleValidationError(t *testing.T) {
-	t.Setenv("CLIAMP_CONFIG_DIR", filepath.Join(t.TempDir(), "config"))
+	t.Setenv("GRBFY_CONFIG_DIR", filepath.Join(t.TempDir(), "config"))
 
 	m := newSetupModel()
 	m.pidx = -1
@@ -301,7 +301,7 @@ func TestSaveAnywayClearsStaleValidationError(t *testing.T) {
 
 func TestSaveSectionSecuresConfigFile(t *testing.T) {
 	configDir := filepath.Join(t.TempDir(), "config")
-	t.Setenv("CLIAMP_CONFIG_DIR", configDir)
+	t.Setenv("GRBFY_CONFIG_DIR", configDir)
 
 	if err := saveSection("mixcloud", "access_token = \"secret\""); err != nil {
 		t.Fatalf("saveSection: %v", err)
@@ -577,7 +577,7 @@ func TestSaveSection(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
 
-	cfg := filepath.Join(dir, ".config", "cliamp", "config.toml")
+	cfg := filepath.Join(dir, ".config", "grbfy", "config.toml")
 
 	// 1. New file.
 	if err := saveSection("plex", "url   = \"http://x\"\ntoken = \"t\""); err != nil {

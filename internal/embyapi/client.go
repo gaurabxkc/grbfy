@@ -65,7 +65,7 @@ func newClient(baseURL, token, userID, user, password string, d dialect) *Client
 		userID:     userID,
 		user:       user,
 		password:   password,
-		deviceID:   "cliamp",
+		deviceID:   "grbfy",
 		dialect:    d,
 		httpClient: defaultHTTPClient,
 	}

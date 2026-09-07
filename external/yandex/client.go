@@ -187,7 +187,7 @@ func sessionTracks(s rotorSession) []track {
 	return tracks
 }
 
-const waveFrom = "cliamp-wave-default"
+const waveFrom = "grbfy-wave-default"
 
 const (
 	rotorTrackStarted  = "trackStarted"
@@ -429,7 +429,7 @@ func (c *client) reportPlayback(userID uint64, trackID string, trackLengthSecond
 	params := url.Values{
 		"uid":                  {strconv.FormatUint(userID, 10)},
 		"track-id":             {trackID},
-		"from":                 {"cliamp"},
+		"from":                 {"grbfy"},
 		"play-id":              {time.Now().Format(timestampFmt)},
 		"track-length-seconds": {strconv.Itoa(trackLengthSeconds)},
 		"total-played-seconds": {strconv.Itoa(playedSeconds)},
@@ -464,7 +464,7 @@ type downloadInfo struct {
 }
 
 // bestDownloadInfo picks the highest quality entry, preferring non-preview
-// MP3 (natively decodable by cliamp), then AAC, then bitrate.
+// MP3 (natively decodable by grbfy), then AAC, then bitrate.
 func bestDownloadInfo(infos []downloadInfo) (downloadInfo, bool) {
 	var best downloadInfo
 	found := false

@@ -142,7 +142,7 @@ static void updateNowPlaying(const char *title, const char *artist, const char *
 		if (artist) info[MPMediaItemPropertyArtist] = @(artist);
 		if (album)  info[MPMediaItemPropertyAlbumTitle] = @(album);
 		if (artURL) {
-			// cliamp only passes local file:// artwork URLs here. Avoid extending
+			// grbfy only passes local file:// artwork URLs here. Avoid extending
 			// this path to remote artwork without moving image loading off-thread.
 			NSURL *url = [NSURL URLWithString:@(artURL)];
 			NSImage *image = url ? [[[NSImage alloc] initWithContentsOfURL:url] autorelease] : nil;

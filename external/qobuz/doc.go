@@ -1,9 +1,9 @@
-// Package qobuz implements a cliamp music provider for Qobuz.
+// Package qobuz implements a grbfy music provider for Qobuz.
 //
 // It authenticates via the interactive OAuth browser flow, scrapes the
 // app_id / signing secrets / OAuth private key from the Qobuz web player
 // bundle.js, and resolves signed CDN stream URLs through the legacy
-// track/getFileUrl endpoint. Those URLs are routed through cliamp's
+// track/getFileUrl endpoint. Those URLs are routed through grbfy's
 // buffer-while-playing + ffmpeg pipeline (see IsStreamURL and
 // RegisterBufferedURLMatcher in main.go), the same path used by the
 // Navidrome, Jellyfin, Emby and Plex providers.

@@ -116,7 +116,7 @@ func Parse(name string, r io.Reader) (Theme, error) {
 }
 
 // LoadAll loads built-in themes and user custom themes from
-// ~/.config/cliamp/themes/*.toml. User themes override built-in
+// ~/.config/grbfy/themes/*.toml. User themes override built-in
 // themes with the same name. Returns a sorted list.
 func LoadAll() []Theme {
 	themes := make(map[string]Theme)
@@ -165,7 +165,7 @@ func loadBuiltin(themes map[string]Theme) {
 	}
 }
 
-// loadUserDir loads themes from ~/.config/cliamp/themes/*.toml.
+// loadUserDir loads themes from ~/.config/grbfy/themes/*.toml.
 func loadUserDir(dir string, themes map[string]Theme) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {

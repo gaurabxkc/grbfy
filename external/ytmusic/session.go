@@ -39,7 +39,7 @@ type Session struct {
 	cacheScope   string
 }
 
-// oauthScopes are the YouTube API scopes needed for cliamp.
+// oauthScopes are the YouTube API scopes needed for grbfy.
 var oauthScopes = []string{
 	"https://www.googleapis.com/auth/youtube.readonly",
 }
@@ -180,7 +180,7 @@ func doOAuth(ctx context.Context, clientID, clientSecret string) (*oauth2.Token,
 			}
 			w.Header().Set("Content-Type", "text/html")
 			_, _ = w.Write([]byte(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>cliamp</title></head>
+<html><head><meta charset="utf-8"><title>grbfy</title></head>
 <body style="font-family:system-ui;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#1a1a2e;color:#e0e0e0">
 <div style="text-align:center">
 <h2>Authenticated!</h2>

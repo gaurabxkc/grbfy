@@ -10,23 +10,23 @@ import (
 )
 
 // desktopFileName is a dedicated entry rather than a MimeType line added to
-// the packaged cliamp.desktop. Keeping them separate means registering and
+// the packaged grbfy.desktop. Keeping them separate means registering and
 // unregistering the scheme never rewrites the launcher entry that install.sh
-// owns, and `cliamp protocol unregister` can simply delete this file.
-const desktopFileName = "cliamp-url-handler.desktop"
+// owns, and `grbfy protocol unregister` can simply delete this file.
+const desktopFileName = "grbfy-url-handler.desktop"
 
 // desktopEntry is the handler registration.
 //
-// NoDisplay keeps it out of application menus: it exists to answer cliamp://
-// links, and a second "cliamp" entry beside the real launcher would be
+// NoDisplay keeps it out of application menus: it exists to answer grbfy://
+// links, and a second "grbfy" entry beside the real launcher would be
 // confusing. Terminal=true matters more than it looks, because a cold start
 // turns into the TUI and needs somewhere to draw.
 const desktopEntry = `[Desktop Entry]
 Type=Application
-Name=cliamp (URL handler)
-Comment=Open cliamp:// links in cliamp
+Name=grbfy (URL handler)
+Comment=Open grbfy:// links in grbfy
 Exec=%s open %%u
-Icon=cliamp
+Icon=grbfy
 Terminal=true
 NoDisplay=true
 StartupNotify=false
@@ -61,7 +61,7 @@ func applicationsDir() (string, error) {
 // handlerSearchDirs lists the application directories a handler entry can
 // live in, in XDG precedence order.
 //
-// install.sh writes the same entry next to cliamp.desktop, which for an
+// install.sh writes the same entry next to grbfy.desktop, which for an
 // install outside the home directory is a system-wide, root-owned path. Only
 // looking under XDG_DATA_HOME would report the scheme as unregistered while
 // links kept working.

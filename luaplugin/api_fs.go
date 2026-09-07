@@ -30,8 +30,8 @@ func writeAllowDirs() []string {
 			raw = append(raw, configDir)
 		}
 		if home, err := os.UserHomeDir(); err == nil {
-			raw = append(raw, filepath.Join(home, ".local", "share", "cliamp"))
-			raw = append(raw, filepath.Join(home, "Music", "cliamp"))
+			raw = append(raw, filepath.Join(home, ".local", "share", "grbfy"))
+			raw = append(raw, filepath.Join(home, "Music", "grbfy"))
 		}
 		for _, d := range raw {
 			abs, err := filepath.Abs(d)
@@ -100,11 +100,11 @@ func normalizeWritePath(path string) string {
 	return path
 }
 
-// registerFSAPI adds cliamp.fs.{write,append,read,remove,exists} to the cliamp table.
-func registerFSAPI(L *lua.LState, cliamp *lua.LTable) {
+// registerFSAPI adds grbfy.fs.{write,append,read,remove,exists} to the grbfy table.
+func registerFSAPI(L *lua.LState, grbfy *lua.LTable) {
 	tbl := L.NewTable()
 
-	// cliamp.fs.write(path, content)
+	// grbfy.fs.write(path, content)
 	L.SetField(tbl, "write", L.NewFunction(func(L *lua.LState) int {
 		path := L.CheckString(1)
 		content := L.CheckString(2)
@@ -126,7 +126,7 @@ func registerFSAPI(L *lua.LState, cliamp *lua.LTable) {
 		return 1
 	}))
 
-	// cliamp.fs.append(path, content)
+	// grbfy.fs.append(path, content)
 	L.SetField(tbl, "append", L.NewFunction(func(L *lua.LState) int {
 		path := L.CheckString(1)
 		content := L.CheckString(2)
@@ -156,7 +156,7 @@ func registerFSAPI(L *lua.LState, cliamp *lua.LTable) {
 		return 1
 	}))
 
-	// cliamp.fs.read(path) -> string (max 1MB)
+	// grbfy.fs.read(path) -> string (max 1MB)
 	L.SetField(tbl, "read", L.NewFunction(func(L *lua.LState) int {
 		path := L.CheckString(1)
 		f, err := os.Open(path)
@@ -185,7 +185,7 @@ func registerFSAPI(L *lua.LState, cliamp *lua.LTable) {
 		return 1
 	}))
 
-	// cliamp.fs.remove(path)
+	// grbfy.fs.remove(path)
 	L.SetField(tbl, "remove", L.NewFunction(func(L *lua.LState) int {
 		path := L.CheckString(1)
 		if !isWriteAllowed(path) {
@@ -201,7 +201,7 @@ func registerFSAPI(L *lua.LState, cliamp *lua.LTable) {
 		return 1
 	}))
 
-	// cliamp.fs.exists(path) -> boolean
+	// grbfy.fs.exists(path) -> boolean
 	L.SetField(tbl, "exists", L.NewFunction(func(L *lua.LState) int {
 		path := L.CheckString(1)
 		_, err := os.Stat(path)
@@ -209,7 +209,7 @@ func registerFSAPI(L *lua.LState, cliamp *lua.LTable) {
 		return 1
 	}))
 
-	// cliamp.fs.mkdir(path) — recursive; path must be in write allowlist.
+	// grbfy.fs.mkdir(path) — recursive; path must be in write allowlist.
 	L.SetField(tbl, "mkdir", L.NewFunction(func(L *lua.LState) int {
 		path := L.CheckString(1)
 		if !isWriteAllowed(path) {
@@ -225,8 +225,8 @@ func registerFSAPI(L *lua.LState, cliamp *lua.LTable) {
 		return 1
 	}))
 
-	// cliamp.fs.listdir(path) -> {names}, err
-	// Reading is unrestricted (matches cliamp.fs.read); returns entry names only.
+	// grbfy.fs.listdir(path) -> {names}, err
+	// Reading is unrestricted (matches grbfy.fs.read); returns entry names only.
 	L.SetField(tbl, "listdir", L.NewFunction(func(L *lua.LState) int {
 		path := L.CheckString(1)
 		entries, err := os.ReadDir(path)
@@ -243,5 +243,5 @@ func registerFSAPI(L *lua.LState, cliamp *lua.LTable) {
 		return 1
 	}))
 
-	L.SetField(cliamp, "fs", tbl)
+	L.SetField(grbfy, "fs", tbl)
 }

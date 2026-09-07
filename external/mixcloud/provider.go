@@ -1,5 +1,5 @@
 // Package mixcloud implements Mixcloud catalog browsing through the public
-// REST API and playback through cliamp's existing yt-dlp pipeline.
+// REST API and playback through grbfy's existing yt-dlp pipeline.
 package mixcloud
 
 import (
@@ -87,7 +87,7 @@ type Config struct {
 // IsSet reports whether Mixcloud should be registered.
 func (c Config) IsSet() bool { return c.Enabled }
 
-// Provider exposes Mixcloud shows as cliamp tracks. It deliberately stores
+// Provider exposes Mixcloud shows as grbfy tracks. It deliberately stores
 // stable Mixcloud page URLs rather than extracted media URLs; yt-dlp resolves
 // the current stream only when playback begins, so queue entries do not expire.
 type Provider struct {

@@ -1,6 +1,6 @@
 // Package radio implements a playlist.Provider for internet radio stations.
-// It includes a built-in cliamp radio stream, user-defined stations from
-// ~/.config/cliamp/radios.toml, favorites from radio_favorites.toml, and
+// It includes a built-in grbfy radio stream, user-defined stations from
+// ~/.config/grbfy/radios.toml, favorites from radio_favorites.toml, and
 // lazy-loaded catalog stations from the Radio Browser API.
 package radio
 
@@ -37,7 +37,7 @@ var (
 	_ playlist.Refresher            = (*Provider)(nil)
 )
 
-const builtinName = "cliamp radio"
+const builtinName = "grbfy radio"
 const builtinURL = "https://radio.cliamp.stream/streams.m3u"
 
 // Section headings for each ID prefix, shown above the rows they cover in the
@@ -95,7 +95,7 @@ type station struct {
 }
 
 // New creates a Provider with the built-in station plus any user-defined
-// stations from ~/.config/cliamp/radios.toml, favorites, and pinned places.
+// stations from ~/.config/grbfy/radios.toml, favorites, and pinned places.
 func New(opts Options) *Provider {
 	p := &Provider{
 		stations: []station{

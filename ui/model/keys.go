@@ -271,6 +271,11 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 		return m.handleQueueKey(msg)
 	}
 
+	// Up Next overlay
+	if m.upNext.visible {
+		return m.handleUpNextKey(msg)
+	}
+
 	// Track info overlay
 	if m.showInfo {
 		switch msg.String() {
@@ -755,6 +760,18 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 		}
 		return m.rearmPreload()
 
+	case "U":
+		m.openUpNext()
+
+	case "Z":
+		if !m.playlist.Shuffled() {
+			m.status.Show("Shuffle is off — press z first", statusTTLShort)
+			break
+		}
+		m.playlist.Reshuffle()
+		m.status.Show("Reshuffled", statusTTLShort)
+		return m.rearmPreload()
+
 	case "tab":
 		m.focus = m.nextMainFocus(m.focus)
 
@@ -1004,7 +1021,7 @@ func (m *Model) handleFullVisualizerKey(msg tea.KeyPressMsg) tea.Cmd {
 	return nil
 }
 
-// saveTrack copies the current track to ~/Music/cliamp/ with a clean filename.
+// saveTrack copies the current track to ~/Music/grbfy/ with a clean filename.
 // For yt-dlp tracks (piped streams), triggers an async download via yt-dlp.
 // For local temp files, copies synchronously.
 func (m *Model) saveTrack() tea.Cmd {
@@ -1020,13 +1037,13 @@ func (m *Model) saveTrack() tea.Cmd {
 		return nil
 	}
 
-	saveDir := filepath.Join(home, "Music", "cliamp")
+	saveDir := filepath.Join(home, "Music", "grbfy")
 	if err := os.MkdirAll(saveDir, 0o755); err != nil {
 		m.status.Errorf(statusTTLShort, "Save failed: %s", err)
 		return nil
 	}
 
-	// YouTube/yt-dlp tracks: async download directly to ~/Music/cliamp/.
+	// YouTube/yt-dlp tracks: async download directly to ~/Music/grbfy/.
 	if playlist.IsYouTubeURL(track.Path) || playlist.IsYTDL(track.Path) {
 		m.status.Clear()
 		m.save.startDownload()
@@ -1059,7 +1076,7 @@ func (m *Model) saveTrack() tea.Cmd {
 		return nil
 	}
 
-	m.status.Showf(statusTTLDefault, "Saved to ~/Music/cliamp/%s", name+ext)
+	m.status.Showf(statusTTLDefault, "Saved to ~/Music/grbfy/%s", name+ext)
 	return nil
 }
 

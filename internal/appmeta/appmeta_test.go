@@ -3,11 +3,11 @@ package appmeta
 import "testing"
 
 func TestDefaults(t *testing.T) {
-	if got := ClientName(); got != "cliamp" {
-		t.Fatalf("ClientName() = %q, want %q", got, "cliamp")
+	if got := ClientName(); got != "grbfy" {
+		t.Fatalf("ClientName() = %q, want %q", got, "grbfy")
 	}
-	if got := DeviceName(); got != "cliamp" {
-		t.Fatalf("DeviceName() = %q, want %q", got, "cliamp")
+	if got := DeviceName(); got != "grbfy" {
+		t.Fatalf("DeviceName() = %q, want %q", got, "grbfy")
 	}
 }
 

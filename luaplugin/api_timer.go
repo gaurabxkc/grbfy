@@ -100,12 +100,12 @@ func (tm *timerManager) active(id int64) bool {
 	return ok
 }
 
-// registerTimerAPI adds cliamp.timer.{after,every,cancel} to the cliamp table.
+// registerTimerAPI adds grbfy.timer.{after,every,cancel} to the grbfy table.
 // p is the owning plugin whose mutex protects all LState calls.
-func registerTimerAPI(L *lua.LState, cliamp *lua.LTable, tm *timerManager, p *Plugin) {
+func registerTimerAPI(L *lua.LState, grbfy *lua.LTable, tm *timerManager, p *Plugin) {
 	tbl := L.NewTable()
 
-	// cliamp.timer.after(secs, callback) -> id
+	// grbfy.timer.after(secs, callback) -> id
 	L.SetField(tbl, "after", L.NewFunction(func(L *lua.LState) int {
 		secs := L.CheckNumber(1)
 		fn := L.CheckFunction(2)
@@ -133,7 +133,7 @@ func registerTimerAPI(L *lua.LState, cliamp *lua.LTable, tm *timerManager, p *Pl
 		return 1
 	}))
 
-	// cliamp.timer.every(secs, callback) -> id
+	// grbfy.timer.every(secs, callback) -> id
 	L.SetField(tbl, "every", L.NewFunction(func(L *lua.LState) int {
 		secs := L.CheckNumber(1)
 		fn := L.CheckFunction(2)
@@ -164,21 +164,21 @@ func registerTimerAPI(L *lua.LState, cliamp *lua.LTable, tm *timerManager, p *Pl
 		return 1
 	}))
 
-	// cliamp.timer.cancel(id)
+	// grbfy.timer.cancel(id)
 	L.SetField(tbl, "cancel", L.NewFunction(func(L *lua.LState) int {
 		id := L.CheckInt64(1)
 		tm.cancel(id)
 		return 0
 	}))
 
-	L.SetField(cliamp, "timer", tbl)
+	L.SetField(grbfy, "timer", tbl)
 }
 
-// registerSleepAPI adds cliamp.sleep(secs) — a blocking sleep.
+// registerSleepAPI adds grbfy.sleep(secs) — a blocking sleep.
 // Note: this blocks the plugin's Lua VM, so other hooks for the same
 // plugin will be queued until the sleep completes. Max 10 seconds.
-func registerSleepAPI(L *lua.LState, cliamp *lua.LTable) {
-	L.SetField(cliamp, "sleep", L.NewFunction(func(L *lua.LState) int {
+func registerSleepAPI(L *lua.LState, grbfy *lua.LTable) {
+	L.SetField(grbfy, "sleep", L.NewFunction(func(L *lua.LState) int {
 		secs := float64(L.CheckNumber(1))
 		if secs > 0 && secs <= 10 {
 			time.Sleep(time.Duration(secs * float64(time.Second)))

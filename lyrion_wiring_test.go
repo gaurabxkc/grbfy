@@ -63,7 +63,7 @@ func TestProviderFlagAcceptsLyrion(t *testing.T) {
 		}
 		return nil
 	}
-	if err := app.Run(context.Background(), []string{"cliamp", "--provider", "lyrion"}); err != nil {
+	if err := app.Run(context.Background(), []string{"grbfy", "--provider", "lyrion"}); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 	if flagErr != nil {

@@ -1,154 +1,111 @@
-# CLAUDE.md — cliamp
+# CLAUDE.md — grbfy
 
-> A retro terminal music player (Go + Bubbletea). This file tells AI agents where things live, what conventions the codebase uses, and which skills to lean on.
+> A personal soft fork of [cliamp](https://github.com/bjarneo/cliamp) (Go + Bubbletea terminal
+> music player). This file explains what the fork changes and the rules that keep it mergeable.
 
-## Extended context
+## What this fork is
 
-**More narrative detail, design notes, and roadmap context for cliamp lives in `~/Documents/bjarne/projects/cliamp/`.** Read files in that directory when you need background that isn't captured in code or in `docs/`. Treat it as the project's long-form knowledge base (goals, decisions, TODOs). If a question feels strategic rather than tactical, check there first.
+grbfy is cliamp with a small set of personal features. It is **not** a hard fork: it deliberately
+keeps upstream's Go module path so that upstream changes keep merging cleanly.
 
----
+Upstream is large (~69.5k lines of non-test Go, 263 files) and very active (63 minor releases in v1
+before v2.0.1, commits landing most days). Staying mergeable is the top architectural constraint.
 
-## What cliamp is
-
-A TUI music player inspired by Winamp. Plays local files, HTTP streams, podcasts, and content from many providers: YouTube / YouTube Music, SoundCloud, Bilibili, Spotify, Xiaoyuzhou, Navidrome, Plex, Jellyfin, and a curated radio directory. Ships with a spectrum visualizer, 10-band parametric EQ, Lua plugin system, IPC remote control, and MPRIS/MediaRemote integration.
-
-- Site: https://cliamp.stream
-- Install: `curl -fsSL https://raw.githubusercontent.com/bjarneo/cliamp/HEAD/install.sh | sh`
-- Entry point: `main.go` → `run(...)` wires providers, player, playlist, Lua plugin manager, IPC server, and the Bubbletea program.
-- CLI built with `urfave/cli/v3` in `commands.go`.
-
----
-
-## Architecture map
-
-Top-level layout (each subdirectory below is a Go package):
-
-| Path | Responsibility |
-|------|----------------|
-| `main.go`, `commands.go` | Entry point, CLI definition, subcommands (IPC clients: play/pause/next/seek/…) |
-| `config/` | TOML config load/save, CLI overrides, provider-specific config blocks |
-| `player/` | Audio engine. Decoding (FFmpeg, yt-dlp), DSP pipeline, 10-band EQ, ICY, gapless, platform audio devices (`audio_device_*.go`) |
-| `playlist/` | Playlist model, shuffle/repeat, M3U/PLS encoding, tag reading, queue navigation |
-| `provider/` | `interfaces.go` + `types.go`: the `Provider` contract every source implements |
-| `external/<name>/` | One Go package per provider: `local`, `radio`, `navidrome`, `plex`, `jellyfin`, `spotify`, `ytmusic` |
-| `resolve/` | Expand user arguments (files, dirs, M3U/PLS, URLs, search queries) into playable tracks |
-| `ui/` | Bubbletea view layer: visualizers (`vis_*.go`), global styles, tick loop |
-| `ui/model/` | The Bubbletea `Model`: state, update, keymap, overlays, file browser, search, EQ, seek, notifications, providers. This is the biggest directory — always start here for UI behavior |
-| `luaplugin/` | Gopher-Lua VM wrapper + sandbox + plugin APIs (`api_player.go`, `api_fs.go`, `api_http.go`, `api_message.go`, `api_crypto.go`, …). Plugin visualizers live here too |
-| `plugins/` | First-party bundled Lua plugins (`now-playing.lua`, `auto-eq.lua`, …) |
-| `pluginmgr/` | `cliamp plugins install/remove/list` CLI: resolves GitHub/GitLab/Codeberg sources and a direct URL |
-| `ipc/` | Unix-socket IPC: `server.go` listens; `client.go` + `protocol.go` drive subcommands like `cliamp pause` from outside the TUI |
-| `mediactl/` | MPRIS (Linux, dbus) + NowPlaying (macOS) integration. `service_linux.go`, `service_darwin.go`, `service_stub.go` for other OSes |
-| `lyrics/` | LRC parsing / fetching |
-| `theme/` | Theme loading, default theme, `themes/` subfolder |
-| `internal/` | Shared helpers not meant for import by plugins: `appdir`, `appmeta` (version), `browser`, `control`, `fileutil`, `httpclient`, `playback` (message types like `NextMsg`, `PrevMsg`), `resume`, `sshurl`, `tomlutil` |
-| `cmd/` | Subcommand implementations that the CLI wires up (e.g. playlist subcommands) |
-| `upgrade/` | Self-update logic for `cliamp upgrade` |
-| `site/` | Static website for cliamp.stream — **keep synced with `docs/` on user-facing changes** |
-| `docs/` | User-facing docs. Each feature has its own `.md`. Source of truth for keybindings, providers, plugin API |
-
-### Runtime flow (read this before touching `main.go`)
-
-1. `main()` builds the CLI (`buildApp()` in `commands.go`) and dispatches — most subcommands are thin IPC clients.
-2. `run(overrides, positional)` is the TUI entry path:
-   - Load config → apply CLI overrides.
-   - Instantiate providers conditionally (radio + local always; navidrome/plex/jellyfin/spotify/ytmusic when configured).
-   - Resolve positional args into tracks via `resolve/`.
-   - Construct the `player.Player` (platform-specific audio device picked at compile time via build tags).
-   - Build the Bubbletea `model.Model` with the player, playlist, providers, themes, and the Lua plugin manager.
-   - Wire Lua state/control/UI providers (so plugins can read state and post `prog.Send(...)` messages).
-   - Start the IPC server on a Unix socket.
-   - Hand off to the media-control service (dbus / NowPlaying) which owns the event loop.
-
-### Provider contract
-
-All providers implement the interfaces in `provider/interfaces.go` (Browse, Tracks, Search where relevant). When adding a provider, add a package under `external/<name>/`, then register it in `main.go` behind a config check. Follow existing providers (Navidrome / Plex / Jellyfin) as templates — they share a lot of shape.
-
-### Plugin surface
-
-Lua plugins run in isolated `gopher-lua` VMs. Crashes are sandboxed. Hooks fire on playback events; plugins can register custom visualizers. When you add or change a plugin API, update **all three** of:
-1. `luaplugin/api_*.go` (implementation + tests)
-2. `docs/plugins.md` (user-facing reference)
-3. `site/index.html` (the plugin API grid — see feedback memory)
-
----
-
-## Build, test, and local workflow
+Fork base: `v2.0.1`. Upstream is tracked as the `upstream` remote.
 
 ```sh
-make build        # go build -trimpath with version ldflags → ./cliamp
-make test         # go test ./...
-make vet          # go vet ./...
-make lint         # vet + staticcheck (if installed)
-make fmt          # gofmt -l -w .
-make check        # fmt + vet + test
-make install      # installs binary into ~/.local/bin
+git fetch upstream
+git rebase upstream/main     # feature commits are meant to rebase, not merge
 ```
 
-- Go version: **1.26** (see `go.mod`; toolchain pinned via `mise.toml`).
-- Linux build needs `libasound2-dev` / `alsa-lib` at build time.
-- For audio at runtime on PipeWire or PulseAudio, install `pipewire-alsa` or `pulseaudio-alsa` (see memory `project_alsa_audio_troubleshooting.md`).
-- Optional runtime deps: `ffmpeg` (AAC/ALAC/Opus/WMA), `yt-dlp` (YT/SC/Bandcamp/Bilibili).
+## Fork rules — read before changing anything
 
-Tests are colocated with sources (`*_test.go`). Favor table-driven tests — the codebase already uses them heavily in `player/`, `playlist/`, `config/`, `ui/model/`, and `luaplugin/`.
+1. **Never rename the Go module path.** It stays `github.com/bjarneo/cliamp`. It is invisible at
+   runtime, and renaming it would rewrite 480 import references across 153 files, conflicting with
+   essentially every future upstream merge. This is the single most important rule here.
+2. **New features go in new files.** New files never conflict on merge. When a new feature must
+   touch an upstream file, touch the minimum: one table row, one key case, one setter call.
+3. **Prefer a Lua plugin over a Go patch.** The plugin API (`docs/plugins.md`) covers timers,
+   playback control, keybindings, HTTP, and a persistent store. Anything achievable there should
+   not become a core patch.
+4. **Don't delete upstream code you merely stopped calling.** Deleting an upstream file guarantees
+   conflicts later. `upgrade/` is intentionally left in place but unreferenced (see below).
 
-Config lives at `~/.config/cliamp/config.toml` (example at `config.toml.example`); plugins at `~/.config/cliamp/plugins/`; custom radios at `~/.config/cliamp/radios.toml`; themes at `~/.config/cliamp/themes/`.
+## What the rebrand changed
 
----
+Only the user-visible surface. Functional renames, not cosmetic ones:
 
-## Conventions to follow
+| Area | cliamp | grbfy | Why it matters |
+|---|---|---|---|
+| Config dir | `~/.config/cliamp` | `~/.config/grbfy` | The IPC socket lives inside the config dir, so sharing it would make the two players fight over one socket. |
+| Data dir | `~/.local/share/cliamp` | `~/.local/share/grbfy` | |
+| Save dir | `~/Music/cliamp` | `~/Music/grbfy` | |
+| Env override | `CLIAMP_CONFIG_DIR` | `GRBFY_CONFIG_DIR` | |
+| IPC socket | `cliamp.sock` | `grbfy.sock` | Both can run side by side. |
+| URI scheme | `cliamp://` | `grbfy://` | Two constants: `internal/deeplink.Scheme` **and** `cmd.SchemeName`. Keep them in sync. |
+| MPRIS bus | `org.mpris.MediaPlayer2.cliamp` | `...MediaPlayer2.grbfy` | Avoids a D-Bus name collision when both run. |
+| Desktop handler | `cliamp-url-handler.desktop` | `grbfy-url-handler.desktop` | |
+| Wordmark | `CLIAMP` pixel logo | `GRBFY` | `ui/vis_logo.go` — 5×7 bitmaps, now 5 letters instead of 6. |
+| Binary | `cliamp` | `grbfy` | `Makefile` |
 
-- **Package naming:** lowercase, single-word, matches directory. No internal suffix gymnastics — use `internal/` for genuinely private helpers.
-- **Error handling:** wrap with `fmt.Errorf("context: %w", err)`. Surface user-facing messages from `main.go` / `run(...)` only.
-- **Build tags:** platform-specific audio and media-control files use `*_linux.go` / `*_darwin.go` / `*_stub.go` suffixes — follow the existing pattern, don't invent new conditional-compile styles.
-- **Bubbletea messages:** put shared message types in `internal/playback/` so UI code and non-UI callers (Lua, IPC) can both send them via `prog.Send(...)`.
-- **Keep `docs/` and `site/index.html` in sync** on any user-visible change (keybindings, plugin APIs, providers, config keys). This is recorded as user feedback — the automation depends on it.
-- **Don't add emojis** to code or docs unless the user asks for them.
-- **Minimal diffs:** prefer editing in place over rewriting files. No speculative abstractions.
+**Deliberately NOT renamed:**
 
----
+- The Go module path (rule 1).
+- `radio.cliamp.stream` stream URLs — real external services.
+- The `cliamp-plugin-<name>` install convention (`pluginmgr/resolve.go`) — keeps community plugins
+  installable.
+- **The `cliamp` Lua global.** `luaplugin/luaplugin.go` binds *both* `grbfy` and `cliamp` to the
+  same API table. Every existing plugin calls `cliamp.*`; breaking that would break the bundled
+  plugins in `plugins/` and the whole community ecosystem for no gain.
 
-## Skills to use
+### `grbfy upgrade` is disabled
 
-When working in this repo, prefer these skills over ad-hoc approaches:
+Upstream's updater downloads `bjarneo/cliamp` release binaries, which would silently replace grbfy
+with a different program. The command now returns an error instead. `upgrade/` remains on disk,
+unreferenced, per rule 4.
 
-- **`/golang`** — Best practices for production Go (error handling, concurrency, naming, testing patterns). Use for any Go code you write, review, or refactor here. Pair with `everything-claude-code:golang-patterns` and `everything-claude-code:golang-testing` for deeper pattern work.
-- **`/simplify`** — Review changed code for reuse, quality, and efficiency, then fix what it finds. Run after non-trivial edits in `player/`, `ui/model/`, or `luaplugin/` — those packages accumulate complexity fastest.
-- **Refactoring** — For dead-code cleanup and consolidation, dispatch the `everything-claude-code:refactor-cleaner` agent. For broader architectural restructuring, use `everything-claude-code:architect` first to plan, then execute with narrow edits. Always run `make check` after a refactor — gofmt, vet, and tests all need to pass before you stop.
-- **`/go-review`** — For comprehensive idiomatic Go review (concurrency safety, error handling, security) before landing larger changes.
-- **`/docs`** — When touching an external library (Bubbletea, Beep, go-librespot, urfave/cli, gopher-lua), look up current docs via Context7 rather than relying on training data.
+## Features added by this fork
 
-Golden path for a non-trivial change:
-1. Read relevant `docs/*.md` + skim the target package.
-2. Plan (optionally via `everything-claude-code:plan`).
-3. Implement the narrowest change that works. Add/extend table-driven tests.
-4. Run `make check`.
-5. Invoke `/simplify` on the diff.
-6. If user-visible: update both `docs/` and `site/index.html`.
+1. **Shuffle you can see** — upstream computes a shuffled `order []int`
+   (`playlist/playlist.go:360`) that no UI ever exposes. `playlist/upcoming.go` adds
+   `UpcomingWindow`, resolving what will actually play (queue first, then the order)
+   by the same rules as `Next`, and reporting when a shuffle wrap means the next order
+   has not been drawn yet. `ui/model/upnext.go` shows it on <kbd>U</kbd>;
+   `playlist/reshuffle.go` re-rolls the order on <kbd>Z</kbd> without disturbing the
+   current track.
+2. **Study mode** — `plugins/sleep-timer.lua` (<kbd>W</kbd>) and `plugins/pomodoro.lua`
+   (<kbd>F</kbd>). Pure Lua, no Go changes. See `docs/study-mode.md`.
+3. **Spotify album art** — `AlbumArtURL` is now populated from the `images` already
+   present in every Spotify track object (`external/spotify/provider_shared.go`), so it
+   costs no extra request. Upstream only populated it for the `local` and `mixcloud`
+   providers. This feeds desktop notifications and MPRIS, which render real images.
 
----
+### Album art in the TUI was tried and removed
 
-## Where to look first
+A `Cover` visualizer drew the art as half-blocks. It was cut because the result is
+inherently poor, not because of a fixable bug — worth recording so nobody rebuilds it:
 
-| Question | Start here |
-|----------|-----------|
-| "How does the player decode X?" | `player/decode.go`, `player/ffmpeg.go`, `player/ytdl.go` |
-| "How does the EQ work?" | `player/eq.go` + `player/eq_test.go` |
-| "How is the UI laid out?" | `ui/model/model.go`, `ui/model/view.go`, `ui/styles.go` |
-| "How do keybindings work?" | `ui/model/keymap.go`, `ui/model/keys*.go`, user-facing `docs/keybindings.md` |
-| "How do I add a provider?" | `provider/interfaces.go` → copy `external/navidrome/` as a template |
-| "How does IPC work?" | `ipc/protocol.go` (request/response types), `ipc/server.go`, `ipc/client.go` |
-| "How are Lua plugins sandboxed?" | `luaplugin/sandbox.go`, `luaplugin/luaplugin.go` |
-| "Where are bundled plugins?" | `plugins/` (first-party) |
-| "What visualizers exist?" | `ui/vis_*.go` |
-| "How is configuration resolved?" | `config/config.go` (load), `config/flags.go` (CLI overrides), `config/saver.go` (save) |
-| "Why does my audio break silently on Linux?" | See memory `project_alsa_audio_troubleshooting.md` and README troubleshooting section |
+- A character cell can carry at most **two independently coloured pixels** (the halves
+  of `▀`). Quadrant blocks add shapes but not colours; Braille adds dots but is
+  monochrome. So a fullscreen cover tops out around **60×40 pixels** — a few percent of
+  a 300px cover, which reads as a blurry mosaic.
+- Kitty graphics would fix it, and ghostty supports it. **It was tested**: the same
+  escape sequence draws a sharp image written straight to the terminal, and draws
+  nothing when emitted from inside a Bubbletea view. Bubbletea renders through
+  `ultraviolet`, a cell-based diffing renderer with no image support, and `Program`
+  exposes no positioned raw write (`Println`/`Printf` go to scrollback;
+  `ReleaseTerminal` is a full suspend).
+- The only remaining route is writing image escapes to the tty concurrently with
+  Bubbletea's own writer, re-emitting blindly on a timer since there is no repaint
+  hook. That races the renderer and smears on resize. Not worth it for one visualizer.
 
----
+Ideas deliberately left for later, with the research behind them, are in the plan at
+`~/.claude/plans/`. The largest is Spotify Connect device presence: upstream builds a
+go-librespot session for streaming but never runs the dealer/connectstate loop, so
+other Spotify clients cannot see or control it.
 
-## Things to know about the maintainer's preferences
+## Everything else
 
-- Keep responses and commits terse; no trailing "here's what I did" summaries unless asked.
-- Bundled PRs for refactors in one area are preferred over many small ones (per feedback memory).
-- User-facing changes must update `docs/` *and* `site/index.html` in the same change.
-- Avoid adding new top-level dependencies casually — the dependency list in `go.mod` is intentional.
+Architecture, build commands, provider contracts, and conventions are unchanged from upstream —
+see the upstream README and `docs/`. Build with `make build` (needs Go 1.26+ and `alsa-lib`),
+test with `make test`, and run `make check` before finishing a change.

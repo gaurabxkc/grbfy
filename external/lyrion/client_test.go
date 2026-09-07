@@ -546,7 +546,7 @@ func TestStreamURLRoundTripsThroughIsStreamURL(t *testing.T) {
 
 // --- credentials never reach a track ----------------------------------------
 
-// cliamp persists Track.Path to resume state and to the play history, and LMS
+// grbfy persists Track.Path to resume state and to the play history, and LMS
 // authenticates with the user's real password rather than a revocable token, so
 // a credential in Path would be written to disk in plaintext.
 func TestTrackPathCarriesNoCredentials(t *testing.T) {
@@ -644,7 +644,7 @@ func TestClientSatisfiesCapabilityInterfaces(t *testing.T) {
 	if _, ok := c.(provider.AlbumTrackLoader); !ok {
 		t.Error("Client does not implement provider.AlbumTrackLoader")
 	}
-	// Deliberately NOT a PlaybackReporter: cliamp plays the file directly, so
+	// Deliberately NOT a PlaybackReporter: grbfy plays the file directly, so
 	// there is no LMS player whose history could honestly be updated.
 	if _, ok := c.(provider.PlaybackReporter); ok {
 		t.Error("Client implements provider.PlaybackReporter; see design.md")

@@ -1,10 +1,10 @@
 // Package cmd implements interactive subcommands invoked from the CLI.
 // setup.go contains the provider onboarding wizard reachable via
-// `cliamp setup`. It walks the user through configuring each remote
+// `grbfy setup`. It walks the user through configuring each remote
 // provider (Navidrome, Plex, Jellyfin, Spotify, Qobuz, Tidal, Mixcloud,
 // NetEase, YouTube Music),
 // validates the connection where possible, and writes the resulting
-// TOML section to ~/.config/cliamp/config.toml.
+// TOML section to ~/.config/grbfy/config.toml.
 //
 // The UI is a small standalone Bubbletea+Lipgloss program — separate from
 // the main player Model — because setup runs to completion and exits.
@@ -328,9 +328,9 @@ func providers() []providerSpec {
 				"private Web API rate-limit quota for library, playlists, and search.",
 				"Playback is authorized separately, so first use completes two",
 				"steps in one browser tab. Development Mode caps /v1/search at",
-				"10 results per request; cliamp pages automatically with offset.",
+				"10 results per request; grbfy pages automatically with offset.",
 				"",
-				"Alternative: cliamp ships a built-in client_id (the librespot",
+				"Alternative: grbfy ships a built-in client_id (the librespot",
 				"keymaster) if you do not want to register an app. It's shared with",
 				"every librespot- and spotify-player-based client, so you may see",
 				"occasional 429 errors when the pool is busy.",
@@ -378,8 +378,8 @@ func providers() []providerSpec {
 			intro: []string{
 				"Lossless streaming. Requires an active Qobuz subscription.",
 				"",
-				"No API credentials needed - cliamp obtains them automatically.",
-				"After setup, launch cliamp, select Qobuz, and press Enter to",
+				"No API credentials needed - grbfy obtains them automatically.",
+				"After setup, launch grbfy, select Qobuz, and press Enter to",
 				"sign in via OAuth in your browser. Hi-Res tiers require a plan",
 				"that includes them.",
 			},
@@ -412,8 +412,8 @@ func providers() []providerSpec {
 				"Lossless streaming. Requires a paid Tidal subscription",
 				"(every paid plan includes lossless FLAC).",
 				"",
-				"No API credentials needed - cliamp uses built-in ones.",
-				"After setup, launch cliamp, select Tidal, and press Enter to",
+				"No API credentials needed - grbfy uses built-in ones.",
+				"After setup, launch grbfy, select Tidal, and press Enter to",
 				"sign in: approve the link.tidal.com device code in a browser.",
 			},
 			picker: &pickerSpec{
@@ -523,7 +523,7 @@ func providers() []providerSpec {
 				{key: "access_token", label: "Developer API access token (optional)", help: "enables /me and Listen Later", secret: true},
 				{key: "cookies_from", label: "Custom browser/profile", help: "e.g. chrome:Profile 1, firefox:default-release", required: true,
 					onlyIf: func(v map[string]string) bool { return v[keyMixcloudBrowser] == "custom" }},
-				{key: "styles", label: "Music styles (optional)", help: "comma-separated; blank uses cliamp defaults"},
+				{key: "styles", label: "Music styles (optional)", help: "comma-separated; blank uses grbfy defaults"},
 				{key: "max_items", label: "Items per view", help: fmt.Sprintf("%d-%d", mixcloud.MinItems, mixcloud.MaxItemsLimit), defaultV: strconv.Itoa(mixcloud.DefaultMaxItems)},
 				{key: "stream_creators", label: "Creators in Stream", help: fmt.Sprintf("%d-%d", mixcloud.MinItems, mixcloud.MaxStreamCreators), defaultV: strconv.Itoa(mixcloud.DefaultStreamCreators)},
 			},
@@ -1082,7 +1082,7 @@ var (
 
 const (
 	maxCardWidth = 78
-	logoLine1    = "  cliamp setup"
+	logoLine1    = "  grbfy setup"
 	logoLine2    = "  configure remote providers"
 )
 

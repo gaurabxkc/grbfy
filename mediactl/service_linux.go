@@ -135,7 +135,7 @@ func New(send func(tea.Msg)) (*Service, error) {
 		return nil, fmt.Errorf("mpris: session bus: %w", err)
 	}
 
-	reply, err := conn.RequestName("org.mpris.MediaPlayer2.cliamp",
+	reply, err := conn.RequestName("org.mpris.MediaPlayer2.grbfy",
 		dbus.NameFlagDoNotQueue)
 	if err != nil {
 		conn.Close()
@@ -167,7 +167,7 @@ func New(send func(tea.Msg)) (*Service, error) {
 
 	propsSpec := map[string]map[string]*prop.Prop{
 		"org.mpris.MediaPlayer2": {
-			"Identity":            {Value: "Cliamp", Writable: false, Emit: prop.EmitTrue},
+			"Identity":            {Value: "Grbfy", Writable: false, Emit: prop.EmitTrue},
 			"CanQuit":             {Value: true, Writable: false, Emit: prop.EmitTrue},
 			"CanRaise":            {Value: false, Writable: false, Emit: prop.EmitTrue},
 			"HasTrackList":        {Value: false, Writable: false, Emit: prop.EmitTrue},

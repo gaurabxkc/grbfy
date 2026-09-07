@@ -16,19 +16,19 @@ func TestDir(t *testing.T) {
 	}{
 		{
 			name: "home config",
-			env:  map[string]string{"CLIAMP_CONFIG_DIR": "", "XDG_CONFIG_HOME": "", "APPDATA": "", "HOME": "TEMPDIR"},
-			want: func(tmp string) string { return filepath.Join(tmp, ".config", "cliamp") },
+			env:  map[string]string{"GRBFY_CONFIG_DIR": "", "XDG_CONFIG_HOME": "", "APPDATA": "", "HOME": "TEMPDIR"},
+			want: func(tmp string) string { return filepath.Join(tmp, ".config", "grbfy") },
 		},
 		{
 			name: "xdg config",
-			env:  map[string]string{"CLIAMP_CONFIG_DIR": "", "HOME": "", "APPDATA": "", "XDG_CONFIG_HOME": "TEMPDIR"},
-			want: func(tmp string) string { return filepath.Join(tmp, "cliamp") },
+			env:  map[string]string{"GRBFY_CONFIG_DIR": "", "HOME": "", "APPDATA": "", "XDG_CONFIG_HOME": "TEMPDIR"},
+			want: func(tmp string) string { return filepath.Join(tmp, "grbfy") },
 		},
 		{
 			name:        "appdata on windows when home missing",
 			windowsOnly: true,
-			env:         map[string]string{"CLIAMP_CONFIG_DIR": "", "XDG_CONFIG_HOME": "", "HOME": "", "APPDATA": "TEMPDIR"},
-			want:        func(tmp string) string { return filepath.Join(tmp, "cliamp") },
+			env:         map[string]string{"GRBFY_CONFIG_DIR": "", "XDG_CONFIG_HOME": "", "HOME": "", "APPDATA": "TEMPDIR"},
+			want:        func(tmp string) string { return filepath.Join(tmp, "grbfy") },
 		},
 	}
 
@@ -59,7 +59,7 @@ func TestDir(t *testing.T) {
 }
 
 func TestPluginDir(t *testing.T) {
-	t.Setenv("CLIAMP_CONFIG_DIR", "")
+	t.Setenv("GRBFY_CONFIG_DIR", "")
 	t.Setenv("XDG_CONFIG_HOME", "")
 	t.Setenv("APPDATA", "")
 	t.Setenv("HOME", t.TempDir())
@@ -69,13 +69,13 @@ func TestPluginDir(t *testing.T) {
 		t.Fatalf("PluginDir() error: %v", err)
 	}
 
-	if !strings.HasSuffix(dir, filepath.Join("cliamp", "plugins")) {
-		t.Fatalf("PluginDir() = %q, expected to end with cliamp/plugins", dir)
+	if !strings.HasSuffix(dir, filepath.Join("grbfy", "plugins")) {
+		t.Fatalf("PluginDir() = %q, expected to end with grbfy/plugins", dir)
 	}
 }
 
 func TestPluginDirIsSubdirOfDir(t *testing.T) {
-	t.Setenv("CLIAMP_CONFIG_DIR", "")
+	t.Setenv("GRBFY_CONFIG_DIR", "")
 	t.Setenv("XDG_CONFIG_HOME", "")
 	t.Setenv("APPDATA", "")
 	t.Setenv("HOME", t.TempDir())

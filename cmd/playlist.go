@@ -1,4 +1,4 @@
-// Package cmd implements CLI subcommands for cliamp.
+// Package cmd implements CLI subcommands for grbfy.
 package cmd
 
 import (

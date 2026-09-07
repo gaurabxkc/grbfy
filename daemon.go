@@ -32,10 +32,10 @@ import (
 
 const daemonControlQueueCapacity = 64
 
-// runDaemon runs cliamp without a TUI: serves IPC against the shared
+// runDaemon runs grbfy without a TUI: serves IPC against the shared
 // player+playlist, auto-advances tracks, exits on SIGINT/SIGTERM.
 func runDaemon(p *player.Player, pl *playlist.Playlist, localProv *local.Provider, providers []model.ProviderEntry, autoPlay bool, eqPreset string) error {
-	fmt.Fprintf(os.Stderr, "cliamp: running headless (socket: %s)\n", ipc.DefaultSocketPath())
+	fmt.Fprintf(os.Stderr, "grbfy: running headless (socket: %s)\n", ipc.DefaultSocketPath())
 	applog.Info("daemon: starting headless mode")
 
 	d := &daemon{
@@ -1083,7 +1083,7 @@ func trackFromInfo(info ipc.TrackInfo) playlist.Track {
 }
 
 // bandsResponse performs the same FFT analysis used by the interactive TUI so
-// V2 clients can render a real spectrum while cliamp runs headless.
+// V2 clients can render a real spectrum while grbfy runs headless.
 func (d *daemon) bandsResponse() ipc.Response {
 	if d.vis == nil {
 		return ipc.Response{OK: false, Error: "visualizer not available in headless mode"}

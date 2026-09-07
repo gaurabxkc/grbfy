@@ -1,7 +1,7 @@
-// Package deeplink parses cliamp:// URIs into the small set of actions the
+// Package deeplink parses grbfy:// URIs into the small set of actions the
 // protocol handler is allowed to perform.
 //
-// A cliamp:// URI can be delivered by any web page with a single click, so
+// A grbfy:// URI can be delivered by any web page with a single click, so
 // every value reaching Parse is untrusted. Two rules keep that manageable:
 //
 //   - Parse returns a closed struct. There is no field that can carry an IPC
@@ -58,7 +58,7 @@ const (
 	TargetSearch
 )
 
-// Action is the validated result of parsing a cliamp:// URI. Exactly one
+// Action is the validated result of parsing a grbfy:// URI. Exactly one
 // target field is populated, indicated by Target.
 type Action struct {
 	Verb   Verb
@@ -78,12 +78,12 @@ type Action struct {
 	Query    string
 }
 
-// ErrNotDeepLink reports a URI that is not in the cliamp scheme at all, so
+// ErrNotDeepLink reports a URI that is not in the grbfy scheme at all, so
 // callers can tell "not for us" apart from "malformed".
-var ErrNotDeepLink = errors.New("not a cliamp:// URI")
+var ErrNotDeepLink = errors.New("not a grbfy:// URI")
 
-// Scheme is the URI scheme cliamp registers with the desktop environment.
-const Scheme = "cliamp"
+// Scheme is the URI scheme grbfy registers with the desktop environment.
+const Scheme = "grbfy"
 
 const (
 	maxURILen      = 4096
@@ -92,13 +92,13 @@ const (
 	maxProviderLen = 32
 )
 
-// Parse converts a cliamp:// URI into an Action, rejecting anything outside
+// Parse converts a grbfy:// URI into an Action, rejecting anything outside
 // the documented grammar:
 //
-//	cliamp://play?url=https://example.com/stream.mp3
-//	cliamp://play?provider=navidrome&album=a1b2c3
-//	cliamp://play?provider=navidrome&playlist=a1b2c3
-//	cliamp://queue?provider=ytmusic&q=aphex+twin
+//	grbfy://play?url=https://example.com/stream.mp3
+//	grbfy://play?provider=navidrome&album=a1b2c3
+//	grbfy://play?provider=navidrome&playlist=a1b2c3
+//	grbfy://queue?provider=ytmusic&q=aphex+twin
 //
 // There are two verbs and no more. "play" makes the target the thing that is
 // playing now; "queue" adds it without interrupting. A third verb meaning
@@ -115,12 +115,12 @@ func Parse(raw string) (Action, error) {
 		return Action{}, ErrNotDeepLink
 	}
 	if len(raw) > maxURILen {
-		return Action{}, fmt.Errorf("cliamp URI is too long (%d bytes, limit %d)", len(raw), maxURILen)
+		return Action{}, fmt.Errorf("grbfy URI is too long (%d bytes, limit %d)", len(raw), maxURILen)
 	}
 
 	u, err := url.Parse(raw)
 	if err != nil {
-		return Action{}, fmt.Errorf("invalid cliamp URI: %w", err)
+		return Action{}, fmt.Errorf("invalid grbfy URI: %w", err)
 	}
 	if !strings.EqualFold(u.Scheme, Scheme) {
 		return Action{}, ErrNotDeepLink
@@ -134,12 +134,12 @@ func Parse(raw string) (Action, error) {
 	// sender is using a grammar we do not implement, and silently ignoring it
 	// would run an action they did not intend.
 	if p := strings.Trim(u.Path, "/"); p != "" {
-		return Action{}, fmt.Errorf("cliamp://%s takes no path segment, got %q", verb, p)
+		return Action{}, fmt.Errorf("grbfy://%s takes no path segment, got %q", verb, p)
 	}
 
 	query, err := url.ParseQuery(u.RawQuery)
 	if err != nil {
-		return Action{}, fmt.Errorf("invalid cliamp URI query: %w", err)
+		return Action{}, fmt.Errorf("invalid grbfy URI query: %w", err)
 	}
 	if err := rejectUnknownParams(query); err != nil {
 		return Action{}, err
@@ -159,9 +159,9 @@ func parseVerb(host string) (Verb, error) {
 	case "queue":
 		return Queue, nil
 	case "":
-		return 0, errors.New("cliamp URI is missing an action (expected cliamp://play or cliamp://queue)")
+		return 0, errors.New("grbfy URI is missing an action (expected grbfy://play or grbfy://queue)")
 	default:
-		return 0, fmt.Errorf("unknown cliamp action %q (expected play or queue)", host)
+		return 0, fmt.Errorf("unknown grbfy action %q (expected play or queue)", host)
 	}
 }
 
@@ -179,10 +179,10 @@ var knownParams = map[string]bool{
 func rejectUnknownParams(query url.Values) error {
 	for key := range query {
 		if !knownParams[key] {
-			return fmt.Errorf("unknown cliamp URI parameter %q", key)
+			return fmt.Errorf("unknown grbfy URI parameter %q", key)
 		}
 		if len(query[key]) > 1 {
-			return fmt.Errorf("cliamp URI parameter %q is repeated", key)
+			return fmt.Errorf("grbfy URI parameter %q is repeated", key)
 		}
 	}
 	return nil
@@ -212,15 +212,15 @@ func applyTarget(action *Action, query url.Values) error {
 	}
 	switch len(targets) {
 	case 0:
-		return errors.New("cliamp URI names no target (expected url, album, playlist or q)")
+		return errors.New("grbfy URI names no target (expected url, album, playlist or q)")
 	case 1:
 	default:
-		return fmt.Errorf("cliamp URI names %d targets (%s); expected exactly one", len(targets), strings.Join(targets, ", "))
+		return fmt.Errorf("grbfy URI names %d targets (%s); expected exactly one", len(targets), strings.Join(targets, ", "))
 	}
 
 	if rawURL != "" {
 		if provider != "" {
-			return errors.New("cliamp URI cannot combine url with provider")
+			return errors.New("grbfy URI cannot combine url with provider")
 		}
 		clean, err := validateURL(rawURL)
 		if err != nil {
@@ -255,7 +255,7 @@ func applyTarget(action *Action, query url.Values) error {
 	return nil
 }
 
-// validateURL admits only http and https. Everything else that cliamp can
+// validateURL admits only http and https. Everything else that grbfy can
 // play reaches an external process: ssh:// runs the ssh binary against a
 // caller-named host, and the yt-dlp path treats its final argument as a
 // positional that a flag-shaped string could escape. A web page must not
@@ -287,7 +287,7 @@ func validateURL(raw string) (string, error) {
 	case "":
 		return "", fmt.Errorf("url %q has no scheme (expected http or https)", raw)
 	default:
-		return "", fmt.Errorf("url scheme %q is not allowed in a cliamp:// link (expected http or https)", u.Scheme)
+		return "", fmt.Errorf("url scheme %q is not allowed in a grbfy:// link (expected http or https)", u.Scheme)
 	}
 	if u.Host == "" {
 		return "", fmt.Errorf("url %q has no host", raw)
@@ -360,7 +360,7 @@ func AllowsTrackPath(path string) bool {
 // value shaped like a path or an option from ever being used as one.
 func validateProvider(provider string) error {
 	if provider == "" {
-		return errors.New("cliamp URI is missing the provider parameter")
+		return errors.New("grbfy URI is missing the provider parameter")
 	}
 	if len(provider) > maxProviderLen {
 		return fmt.Errorf("provider name is too long (%d bytes, limit %d)", len(provider), maxProviderLen)
@@ -380,7 +380,7 @@ func validateProvider(provider string) error {
 }
 
 // validateIdent covers provider-scoped IDs and search text. These are opaque
-// to cliamp and are forwarded to a provider API, so the checks are about
+// to grbfy and are forwarded to a provider API, so the checks are about
 // keeping them out of argument and control-character territory rather than
 // about their shape.
 func validateIdent(name, value string) error {

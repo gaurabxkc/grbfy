@@ -137,7 +137,7 @@ func fetchLRCLIB(query string) ([]Line, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "cliamp")
+	req.Header.Set("User-Agent", "grbfy")
 
 	resp, err := httpClient.Do(req)
 	if err != nil {

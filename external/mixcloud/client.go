@@ -91,7 +91,7 @@ func (c *client) getJSON(ctx context.Context, apiPath string, query url.Values, 
 		return fmt.Errorf("mixcloud: create request for %s: %w", apiPath, err)
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "cliamp-mixcloud/1")
+	req.Header.Set("User-Agent", "grbfy-mixcloud/1")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

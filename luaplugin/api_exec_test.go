@@ -29,9 +29,9 @@ func newExecTestState(t *testing.T, perms []string) (*lua.LState, *Plugin, *exec
 	}
 
 	em := newExecManager(execTestAllowedBinaries())
-	cliamp := L.NewTable()
-	registerExecAPI(L, cliamp, em, p, newPluginLogger(""))
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerExecAPI(L, grbfy, em, p, newPluginLogger(""))
+	L.SetGlobal("grbfy", grbfy)
 
 	return L, p, em, func() { em.stopAll(); L.Close() }
 }
@@ -117,7 +117,7 @@ func TestExecRunsAllowedBinary(t *testing.T) {
 	err := L.DoString(fmt.Sprintf(`
 		_G.lines = {}
 		_G.exit_code = nil
-		local h, err = cliamp.exec.run(%q, {%s}, {
+		local h, err = grbfy.exec.run(%q, {%s}, {
 			on_stdout = function(line) table.insert(_G.lines, line) end,
 			on_exit = function(code) _G.exit_code = code end,
 		})
@@ -153,7 +153,7 @@ func TestExecRejectsUnallowedBinary(t *testing.T) {
 	defer cleanup()
 
 	err := L.DoString(`
-		local h, err = cliamp.exec.run("rm", {"-rf", "/"}, {})
+		local h, err = grbfy.exec.run("rm", {"-rf", "/"}, {})
 		_G.handle = h
 		_G.err = err
 	`)
@@ -173,7 +173,7 @@ func TestExecRequiresPermission(t *testing.T) {
 	defer cleanup()
 
 	err := L.DoString(`
-		local h, err = cliamp.exec.run("echo", {"hi"}, {})
+		local h, err = grbfy.exec.run("echo", {"hi"}, {})
 		_G.handle = h
 		_G.err = err
 	`)
@@ -196,7 +196,7 @@ func TestExecPropagatesExitCode(t *testing.T) {
 	p.mu.Lock()
 	err := L.DoString(fmt.Sprintf(`
 		_G.exit_code = nil
-		cliamp.exec.run(%q, {%s}, {
+		grbfy.exec.run(%q, {%s}, {
 			on_exit = function(code) _G.exit_code = code end,
 		})
 	`, binary, luaStringList(args)))
@@ -221,7 +221,7 @@ func TestExecCancel(t *testing.T) {
 	p.mu.Lock()
 	err := L.DoString(fmt.Sprintf(`
 		_G.exit_code = nil
-		_G.handle = cliamp.exec.run(%q, {%s}, {
+		_G.handle = grbfy.exec.run(%q, {%s}, {
 			on_exit = function(code) _G.exit_code = code end,
 		})
 	`, binary, luaStringList(args)))
@@ -256,7 +256,7 @@ func TestExecConcurrencyCap(t *testing.T) {
 		_G.errs = {}
 		_G.handles = {}
 		for i = 1, 6 do
-			local h, err = cliamp.exec.run(%q, {%s}, {})
+			local h, err = grbfy.exec.run(%q, {%s}, {})
 			if h then
 				table.insert(_G.handles, h)
 			else
@@ -305,7 +305,7 @@ func TestExecStopPluginKillsChildren(t *testing.T) {
 		return 0
 	}))
 	err := L.DoString(fmt.Sprintf(`
-		cliamp.exec.run(%q, {%s}, {
+		grbfy.exec.run(%q, {%s}, {
 			on_exit = function() notify() end,
 		})
 	`, binary, luaStringList(args)))
@@ -362,7 +362,7 @@ func TestExecCwdMustBeAllowed(t *testing.T) {
 
 	p.mu.Lock()
 	err := L.DoString(fmt.Sprintf(`
-		local h, err = cliamp.exec.run(%q, {%s}, {cwd = %q})
+		local h, err = grbfy.exec.run(%q, {%s}, {cwd = %q})
 		_G.handle = h
 		_G.err = err
 	`, binary, luaStringList(args), cwd))
@@ -384,12 +384,12 @@ func TestExecBinaryNotOnPath(t *testing.T) {
 	defer L.Close()
 	p := &Plugin{Name: "test", L: L, perms: map[string]bool{"exec": true}}
 	em := newExecManager([]string{"definitely-not-a-real-binary-xyz"})
-	cliamp := L.NewTable()
-	registerExecAPI(L, cliamp, em, p, newPluginLogger(""))
-	L.SetGlobal("cliamp", cliamp)
+	grbfy := L.NewTable()
+	registerExecAPI(L, grbfy, em, p, newPluginLogger(""))
+	L.SetGlobal("grbfy", grbfy)
 
 	err := L.DoString(`
-		local h, err = cliamp.exec.run("definitely-not-a-real-binary-xyz", {}, {})
+		local h, err = grbfy.exec.run("definitely-not-a-real-binary-xyz", {}, {})
 		_G.handle = h
 		_G.err = err
 	`)

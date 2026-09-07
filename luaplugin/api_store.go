@@ -13,8 +13,8 @@ import (
 )
 
 // pluginStore is a per-plugin key/value store persisted as a single JSON file
-// at ~/.local/share/cliamp/plugins/<name>/store.json. Values round-trip through
-// the same Lua<->JSON conversion as cliamp.json, so tables, numbers, strings,
+// at ~/.local/share/grbfy/plugins/<name>/store.json. Values round-trip through
+// the same Lua<->JSON conversion as grbfy.json, so tables, numbers, strings,
 // and booleans all survive a restart.
 //
 // The store is scoped to one plugin: a plugin can never read another plugin's
@@ -94,14 +94,14 @@ func (s *pluginStore) save() error {
 	return os.Rename(tmpName, s.path)
 }
 
-// registerStoreAPI adds cliamp.store.{get,set,delete,keys,clear} to the cliamp
+// registerStoreAPI adds grbfy.store.{get,set,delete,keys,clear} to the grbfy
 // table, backed by a per-plugin JSON file. No permission is required: a plugin
 // can only ever touch its own namespace.
-func registerStoreAPI(L *lua.LState, cliamp *lua.LTable, pluginName string) {
+func registerStoreAPI(L *lua.LState, grbfy *lua.LTable, pluginName string) {
 	store := newPluginStore(pluginName)
 	tbl := L.NewTable()
 
-	// cliamp.store.get(key) -> value or nil
+	// grbfy.store.get(key) -> value or nil
 	L.SetField(tbl, "get", L.NewFunction(func(L *lua.LState) int {
 		key := L.CheckString(1)
 		store.mu.Lock()
@@ -116,7 +116,7 @@ func registerStoreAPI(L *lua.LState, cliamp *lua.LTable, pluginName string) {
 		return 1
 	}))
 
-	// cliamp.store.set(key, value) -> true or (nil, error)
+	// grbfy.store.set(key, value) -> true or (nil, error)
 	L.SetField(tbl, "set", L.NewFunction(func(L *lua.LState) int {
 		key := L.CheckString(1)
 		val := luaToGo(L.CheckAny(2))
@@ -128,7 +128,7 @@ func registerStoreAPI(L *lua.LState, cliamp *lua.LTable, pluginName string) {
 		return pushStoreResult(L, err)
 	}))
 
-	// cliamp.store.delete(key) -> true or (nil, error)
+	// grbfy.store.delete(key) -> true or (nil, error)
 	L.SetField(tbl, "delete", L.NewFunction(func(L *lua.LState) int {
 		key := L.CheckString(1)
 		store.mu.Lock()
@@ -139,7 +139,7 @@ func registerStoreAPI(L *lua.LState, cliamp *lua.LTable, pluginName string) {
 		return pushStoreResult(L, err)
 	}))
 
-	// cliamp.store.keys() -> array of keys (sorted for stable iteration)
+	// grbfy.store.keys() -> array of keys (sorted for stable iteration)
 	L.SetField(tbl, "keys", L.NewFunction(func(L *lua.LState) int {
 		store.mu.Lock()
 		store.load()
@@ -157,7 +157,7 @@ func registerStoreAPI(L *lua.LState, cliamp *lua.LTable, pluginName string) {
 		return 1
 	}))
 
-	// cliamp.store.clear() -> true or (nil, error)
+	// grbfy.store.clear() -> true or (nil, error)
 	L.SetField(tbl, "clear", L.NewFunction(func(L *lua.LState) int {
 		store.mu.Lock()
 		store.data = map[string]any{}
@@ -167,11 +167,11 @@ func registerStoreAPI(L *lua.LState, cliamp *lua.LTable, pluginName string) {
 		return pushStoreResult(L, err)
 	}))
 
-	L.SetField(cliamp, "store", tbl)
+	L.SetField(grbfy, "store", tbl)
 }
 
 // pushStoreResult pushes true on success or (nil, error) on failure, matching
-// the convention used by cliamp.fs.
+// the convention used by grbfy.fs.
 func pushStoreResult(L *lua.LState, err error) int {
 	if err != nil {
 		L.Push(lua.LNil)

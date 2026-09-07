@@ -23,7 +23,7 @@ type Favorites struct {
 	path     string
 }
 
-// LoadFavorites reads favorites from ~/.config/cliamp/radio_favorites.toml.
+// LoadFavorites reads favorites from ~/.config/grbfy/radio_favorites.toml.
 func LoadFavorites() *Favorites {
 	f := &Favorites{byURL: make(map[string]struct{})}
 	dir, err := appdir.Dir()

@@ -18,7 +18,7 @@ func TestMessageAPIDeliversTextAndDuration(t *testing.T) {
 
 	loadTestPlugin(t, m, "msg-test", `
 		plugin.register({name = "msg-test", type = "hook"})
-		cliamp.message("Scrobble Sent", 2)
+		grbfy.message("Scrobble Sent", 2)
 	`)
 
 	if gotText != "Scrobble Sent" {
@@ -42,7 +42,7 @@ func TestMessageAPIDefaultsDurationToZero(t *testing.T) {
 
 	loadTestPlugin(t, m, "msg-default", `
 		plugin.register({name = "msg-default", type = "hook"})
-		cliamp.message("hello")
+		grbfy.message("hello")
 	`)
 
 	if !seen {
@@ -62,7 +62,7 @@ func TestMessageAPIClampsMaxDuration(t *testing.T) {
 
 	loadTestPlugin(t, m, "msg-clamp", `
 		plugin.register({name = "msg-clamp", type = "hook"})
-		cliamp.message("long", 9999)
+		grbfy.message("long", 9999)
 	`)
 
 	if gotDur != messageMaxDuration {
@@ -75,7 +75,7 @@ func TestMessageAPIWithoutProviderIsNoop(t *testing.T) {
 	// No SetUIProvider call — ShowMessage is nil.
 	loadTestPlugin(t, m, "msg-noop", `
 		plugin.register({name = "msg-noop", type = "hook"})
-		cliamp.message("nobody listening")
+		grbfy.message("nobody listening")
 	`)
 	// Success = no panic / no error from loadPlugin above.
 }

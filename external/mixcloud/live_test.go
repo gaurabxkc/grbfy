@@ -63,7 +63,7 @@ func TestLivePublicAPI(t *testing.T) {
 }
 
 // TestLivePublicAccount is opt-in and uses only a public Mixcloud username.
-// It verifies the account connections used by cliamp without reading browser
+// It verifies the account connections used by grbfy without reading browser
 // cookies or requiring a developer token.
 func TestLivePublicAccount(t *testing.T) {
 	if os.Getenv("CLIAMP_LIVE_MIXCLOUD") != "1" {

@@ -8,7 +8,7 @@ import (
 )
 
 // LockFile is a best-effort placeholder on Windows: it opens (and creates)
-// path but takes no advisory lock. Windows builds assume a single cliamp
+// path but takes no advisory lock. Windows builds assume a single grbfy
 // process writes any given config file at a time.
 func LockFile(path string) (func() error, error) {
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o644)

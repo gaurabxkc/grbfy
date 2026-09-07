@@ -9,7 +9,7 @@ import (
 )
 
 // LockFile acquires an exclusive advisory lock on path (creating it when
-// missing) so concurrent cliamp processes serialize their load-modify-save
+// missing) so concurrent grbfy processes serialize their load-modify-save
 // cycles on shared config files. The returned function releases the lock and
 // closes the underlying file.
 func LockFile(path string) (func() error, error) {

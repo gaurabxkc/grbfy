@@ -15,7 +15,7 @@ import (
 // Built-in fallback OAuth client credentials: the device ("TV") client pair
 // that the python-tidal ecosystem ships. Tidal revokes leaked client IDs
 // periodically; when that happens, users can set client_id/client_secret in
-// the [tidal] config section to a fresh pair without waiting for a cliamp
+// the [tidal] config section to a fresh pair without waiting for a grbfy
 // release.
 const (
 	fallbackClientID     = "fX2JxdmntZWK0ixT"

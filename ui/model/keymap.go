@@ -114,6 +114,8 @@ func (m Model) keymapContext() (commandMode, string) {
 		return commandModePlaylistManager, "Playlists"
 	case screenQueue:
 		return commandModeQueue, "Queue"
+	case screenUpNext:
+		return commandModeUpNext, "Up Next"
 	case screenInfo:
 		return commandModeInfo, "Track Info"
 	case screenSearch:

@@ -1,4 +1,4 @@
-// Package ipc provides Unix socket IPC for remote playback control of cliamp.
+// Package ipc provides Unix socket IPC for remote playback control of grbfy.
 // The protocol is newline-delimited JSON over a Unix domain socket.
 package ipc
 

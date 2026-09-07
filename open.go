@@ -1,9 +1,9 @@
 package main
 
-// open.go implements the cliamp:// protocol handler.
+// open.go implements the grbfy:// protocol handler.
 //
-// `cliamp open <uri>` is what a desktop environment runs when someone clicks
-// a cliamp:// link. It is the only entry point that acts on a string chosen
+// `grbfy open <uri>` is what a desktop environment runs when someone clicks
+// a grbfy:// link. It is the only entry point that acts on a string chosen
 // by a web page, so it does two things carefully:
 //
 //   - Every URI goes through deeplink.Parse first, which validates the whole
@@ -36,19 +36,19 @@ const deepLinkStartupTimeout = 15 * time.Second
 func openCommand() *cli.Command {
 	return &cli.Command{
 		Name:      "open",
-		Usage:     "handle a cliamp:// link",
-		ArgsUsage: "<cliamp://...>",
-		Description: "Plays or queues the target of a cliamp:// URI. Registered as the\n" +
-			"system handler for the scheme by `cliamp protocol register`.\n\n" +
-			"  cliamp open 'cliamp://play?url=https://example.com/stream.mp3'\n" +
-			"  cliamp open 'cliamp://play?provider=navidrome&album=a1b2c3'\n" +
-			"  cliamp open 'cliamp://queue?provider=ytmusic&q=aphex+twin'\n\n" +
-			"When cliamp is already running the action is sent over IPC and the\n" +
+		Usage:     "handle a grbfy:// link",
+		ArgsUsage: "<grbfy://...>",
+		Description: "Plays or queues the target of a grbfy:// URI. Registered as the\n" +
+			"system handler for the scheme by `grbfy protocol register`.\n\n" +
+			"  grbfy open 'grbfy://play?url=https://example.com/stream.mp3'\n" +
+			"  grbfy open 'grbfy://play?provider=navidrome&album=a1b2c3'\n" +
+			"  grbfy open 'grbfy://queue?provider=ytmusic&q=aphex+twin'\n\n" +
+			"When grbfy is already running the action is sent over IPC and the\n" +
 			"command exits. Otherwise it starts the player in this terminal and\n" +
 			"performs the action once it is up.",
 		Action: func(ctx context.Context, c *cli.Command) error {
 			if c.Args().Len() == 0 {
-				return fmt.Errorf("usage: cliamp open 'cliamp://play?url=https://example.com/stream.mp3'")
+				return fmt.Errorf("usage: grbfy open 'grbfy://play?url=https://example.com/stream.mp3'")
 			}
 			return openDeepLink(ctx, c.Args().First())
 		},
@@ -73,7 +73,7 @@ func openDeepLink(ctx context.Context, uri string) error {
 // mistaken for "not running" and answered by starting a second player.
 func ipcRunning() bool {
 	_, err := ipc.SendV2(ipc.DefaultSocketPath(), ipc.V2Request{
-		ID:     json.RawMessage(`"cliamp"`),
+		ID:     json.RawMessage(`"grbfy"`),
 		Method: "capabilities",
 	})
 	return !errors.Is(err, ipc.ErrNotRunning)
@@ -92,11 +92,11 @@ func coldStartDeepLink(action deeplink.Action) error {
 	// UserError both records the failure and surfaces it in the footer.
 	go func() {
 		if !waitForIPC(deepLinkStartupTimeout) {
-			applog.UserError("cliamp:// %s timed out waiting for the player to start", action.Verb)
+			applog.UserError("grbfy:// %s timed out waiting for the player to start", action.Verb)
 			return
 		}
 		if err := dispatchDeepLink(action); err != nil {
-			applog.UserError("cliamp:// %s failed: %v", action.Verb, err)
+			applog.UserError("grbfy:// %s failed: %v", action.Verb, err)
 		}
 	}()
 	return run(config.Overrides{}, nil, false, false)
@@ -123,14 +123,14 @@ func dispatchDeepLink(action deeplink.Action) error {
 	case deeplink.TargetURL:
 		// url.load routes through resolve, which admits only http and https
 		// and drops non-http entries from remote playlists. That is the same
-		// path `cliamp queue` uses, so a link cannot reach anything typing a
+		// path `grbfy queue` uses, so a link cannot reach anything typing a
 		// URL could not.
 		_, err := ipcSend("url.load", ipc.Request{Path: action.URL, Play: play})
 		return err
 
 	case deeplink.TargetAlbum:
 		if !play {
-			return errors.New("queueing a provider album is not supported; use cliamp://play")
+			return errors.New("queueing a provider album is not supported; use grbfy://play")
 		}
 		_, err := ipcSend("provider.load_album", ipc.Request{
 			Provider: action.Provider,
@@ -140,7 +140,7 @@ func dispatchDeepLink(action deeplink.Action) error {
 
 	case deeplink.TargetPlaylist:
 		if !play {
-			return errors.New("queueing a provider playlist is not supported; use cliamp://play")
+			return errors.New("queueing a provider playlist is not supported; use grbfy://play")
 		}
 		_, err := ipcSend("provider.load", ipc.Request{
 			Provider: action.Provider,
@@ -151,7 +151,7 @@ func dispatchDeepLink(action deeplink.Action) error {
 	case deeplink.TargetSearch:
 		return dispatchDeepLinkSearch(action, play)
 	}
-	return fmt.Errorf("unsupported cliamp:// target")
+	return fmt.Errorf("unsupported grbfy:// target")
 }
 
 // dispatchDeepLinkSearch plays or queues a provider's top match for the query.
@@ -178,7 +178,7 @@ func dispatchDeepLinkSearch(action deeplink.Action, play bool) error {
 	// its entries are filtered at ingest; this keeps the guarantee even for a
 	// provider added later that forwards a URL it did not construct.
 	if path := response.Tracks[0].Path; !deeplink.AllowsTrackPath(path) {
-		return fmt.Errorf("%s returned a result a cliamp:// link may not play: %q", action.Provider, path)
+		return fmt.Errorf("%s returned a result a grbfy:// link may not play: %q", action.Provider, path)
 	}
 
 	operation := "track.queue"

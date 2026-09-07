@@ -1,5 +1,5 @@
 // Package favorites persists the user's favorite tracks to a TOML file in the
-// cliamp config directory. Favorites are explicitly toggled by the user and
+// grbfy config directory. Favorites are explicitly toggled by the user and
 // span all playlists — a track favorited in playlist A appears when browsing
 // the virtual "Favorites" playlist regardless of where it was starred.
 //
@@ -43,7 +43,7 @@ type Store struct {
 	mu sync.Mutex
 }
 
-// New returns a Store backed by ~/.config/cliamp/favorites.toml. Returns nil if
+// New returns a Store backed by ~/.config/grbfy/favorites.toml. Returns nil if
 // the config directory cannot be resolved.
 func New() *Store {
 	dir, err := appdir.Dir()
@@ -233,7 +233,7 @@ func (s *Store) Clear() error {
 	return nil
 }
 
-// lockFile serializes writers across cliamp processes: the per-instance
+// lockFile serializes writers across grbfy processes: the per-instance
 // mutex alone cannot stop two processes from rewriting the same file.
 func (s *Store) lockFile() (func() error, error) {
 	return fileutil.LockFile(s.path + ".lock")

@@ -9,7 +9,7 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
-// pluginLogger writes plugin log messages to ~/.config/cliamp/plugins.log.
+// pluginLogger writes plugin log messages to ~/.config/grbfy/plugins.log.
 type pluginLogger struct {
 	mu   sync.Mutex
 	path string
@@ -50,8 +50,8 @@ func (l *pluginLogger) close() {
 	l.mu.Unlock()
 }
 
-// registerLogAPI adds cliamp.log.{info,warn,error,debug} to the cliamp table.
-func registerLogAPI(L *lua.LState, cliamp *lua.LTable, logger *pluginLogger, pluginName string) {
+// registerLogAPI adds grbfy.log.{info,warn,error,debug} to the grbfy table.
+func registerLogAPI(L *lua.LState, grbfy *lua.LTable, logger *pluginLogger, pluginName string) {
 	tbl := L.NewTable()
 	for _, level := range []string{"info", "warn", "error", "debug"} {
 		L.SetField(tbl, level, L.NewFunction(func(L *lua.LState) int {
@@ -60,5 +60,5 @@ func registerLogAPI(L *lua.LState, cliamp *lua.LTable, logger *pluginLogger, plu
 			return 0
 		}))
 	}
-	L.SetField(cliamp, "log", tbl)
+	L.SetField(grbfy, "log", tbl)
 }

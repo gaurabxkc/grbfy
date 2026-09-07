@@ -57,12 +57,12 @@ var sniffClient = &http.Client{
 	Transport: &uaTransport{rt: http.DefaultTransport},
 }
 
-// uaTransport injects the cliamp User-Agent header into every request.
+// uaTransport injects the grbfy User-Agent header into every request.
 type uaTransport struct{ rt http.RoundTripper }
 
 func (t *uaTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req = req.Clone(req.Context())
-	req.Header.Set("User-Agent", "cliamp/1.0 (https://github.com/bjarneo/cliamp)")
+	req.Header.Set("User-Agent", "grbfy/1.0 (https://github.com/bjarneo/cliamp)")
 	return t.rt.RoundTrip(req)
 }
 

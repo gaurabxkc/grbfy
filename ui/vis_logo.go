@@ -5,26 +5,25 @@ import (
 	"strings"
 )
 
-// logoGlyphs holds 5×7 pixel bitmaps for each letter in "CLIAMP".
+// logoGlyphs holds 5×7 pixel bitmaps for each letter in "GRBFY".
 // Each row is 5 bits wide; bit 4 (0x10) is the leftmost pixel.
-var logoGlyphs = [6][7]uint8{
-	{0x0E, 0x10, 0x10, 0x10, 0x10, 0x10, 0x0E}, // C
-	{0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x1F}, // L
-	{0x1F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x1F}, // I
-	{0x0E, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11}, // A
-	{0x11, 0x1B, 0x15, 0x11, 0x11, 0x11, 0x11}, // M
-	{0x1E, 0x11, 0x11, 0x1E, 0x10, 0x10, 0x10}, // P
+var logoGlyphs = [5][7]uint8{
+	{0x0E, 0x11, 0x10, 0x17, 0x11, 0x11, 0x0E}, // G
+	{0x1E, 0x11, 0x11, 0x1E, 0x14, 0x12, 0x11}, // R
+	{0x1E, 0x11, 0x11, 0x1E, 0x11, 0x11, 0x1E}, // B
+	{0x1F, 0x10, 0x10, 0x1E, 0x10, 0x10, 0x10}, // F
+	{0x11, 0x11, 0x0A, 0x04, 0x04, 0x04, 0x04}, // Y
 }
 
 const (
 	logoLetterW    = 5 // pixel columns per glyph
 	logoLetterH    = 7 // pixel rows per glyph
-	logoNumLetters = 6
+	logoNumLetters = 5
 	logoGap        = 2                                                       // pixel gap between letters
-	logoTotalW     = logoNumLetters*logoLetterW + (logoNumLetters-1)*logoGap // 40
+	logoTotalW     = logoNumLetters*logoLetterW + (logoNumLetters-1)*logoGap // 33
 )
 
-// renderLogo draws "CLIAMP" in pixel art using Braille dots. Individual dots
+// renderLogo draws "GRBFY" in pixel art using Braille dots. Individual dots
 // within each letter appear and disappear based on the associated frequency
 // band's energy — loud passages fill the text solid, silence dissolves it
 // into scattered pixels. A gentle bounce and wave keep things alive.
@@ -50,8 +49,8 @@ func (v *Visualizer) renderLogo(bands []float64) string {
 	offsetX := (dotCols - renderedW) / 2
 	baseOffsetY := (dotRows - renderedH) / 2
 
-	// Map 6 letters across the 10 frequency bands.
-	letterBand := [6]int{0, 2, 4, 5, 7, 9}
+	// Map 5 letters across the 10 frequency bands.
+	letterBand := [5]int{0, 2, 4, 6, 8}
 
 	for li := range logoNumLetters {
 		energy := bands[letterBand[li]]

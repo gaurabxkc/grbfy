@@ -150,7 +150,7 @@ func TestJobStorePreservesFailureDetail(t *testing.T) {
 }
 
 func TestServerRoutesV2(t *testing.T) {
-	sock := filepath.Join(shortTempDir(t), "cliamp.sock")
+	sock := filepath.Join(shortTempDir(t), "grbfy.sock")
 	server, err := NewServer(sock)
 	if err != nil {
 		t.Fatal(err)
@@ -179,7 +179,7 @@ func TestServerRoutesV2(t *testing.T) {
 }
 
 func TestServerCanonicalizesMethodOperation(t *testing.T) {
-	sock := filepath.Join(shortTempDir(t), "cliamp.sock")
+	sock := filepath.Join(shortTempDir(t), "grbfy.sock")
 	server, err := NewServer(sock)
 	if err != nil {
 		t.Fatal(err)
@@ -199,7 +199,7 @@ func TestServerCanonicalizesMethodOperation(t *testing.T) {
 }
 
 func TestServerRoutesRuntimeSnapshotAliasToV2State(t *testing.T) {
-	sock := filepath.Join(shortTempDir(t), "cliamp.sock")
+	sock := filepath.Join(shortTempDir(t), "grbfy.sock")
 	server, err := NewServer(sock)
 	if err != nil {
 		t.Fatal(err)
@@ -219,7 +219,7 @@ func TestServerRoutesRuntimeSnapshotAliasToV2State(t *testing.T) {
 }
 
 func TestServerCloseIsIdempotent(t *testing.T) {
-	sock := filepath.Join(shortTempDir(t), "cliamp.sock")
+	sock := filepath.Join(shortTempDir(t), "grbfy.sock")
 	server, err := NewServer(sock)
 	if err != nil {
 		t.Fatal(err)
@@ -234,7 +234,7 @@ func TestServerCloseIsIdempotent(t *testing.T) {
 
 func TestV2SubscribeAcknowledgesThenStreamsEvents(t *testing.T) {
 	broker := NewBroker()
-	sock := filepath.Join(shortTempDir(t), "cliamp.sock")
+	sock := filepath.Join(shortTempDir(t), "grbfy.sock")
 	server, err := NewServerWithBroker(sock, broker)
 	if err != nil {
 		t.Fatal(err)

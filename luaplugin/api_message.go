@@ -11,11 +11,11 @@ import (
 // runaway script cannot pin the status bar indefinitely.
 const messageMaxDuration = 60 * time.Second
 
-// registerMessageAPI adds cliamp.message(text, duration_secs?) which displays a
+// registerMessageAPI adds grbfy.message(text, duration_secs?) which displays a
 // temporary message in the status bar at the bottom of the UI. A missing or
 // non-positive duration falls back to the default status TTL (set by the UI).
-func registerMessageAPI(L *lua.LState, cliamp *lua.LTable, ui *UIProvider) {
-	L.SetField(cliamp, "message", L.NewFunction(func(L *lua.LState) int {
+func registerMessageAPI(L *lua.LState, grbfy *lua.LTable, ui *UIProvider) {
+	L.SetField(grbfy, "message", L.NewFunction(func(L *lua.LState) int {
 		if ui.ShowMessage == nil {
 			return 0
 		}

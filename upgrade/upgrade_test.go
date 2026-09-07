@@ -141,12 +141,12 @@ func TestLatestVersionBadJSON(t *testing.T) {
 func TestReleaseChecksum(t *testing.T) {
 	want := strings.Repeat("a", 64)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = io.WriteString(w, want+"  cliamp-linux-amd64\n")
+		_, _ = io.WriteString(w, want+"  grbfy-linux-amd64\n")
 	}))
 	defer srv.Close()
 	installTestClient(t, srv.URL)
 
-	got, err := releaseChecksum(srv.URL+"/checksums.txt", "cliamp-linux-amd64")
+	got, err := releaseChecksum(srv.URL+"/checksums.txt", "grbfy-linux-amd64")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,14 +161,14 @@ func TestReleaseChecksumMissingEntry(t *testing.T) {
 	}))
 	defer srv.Close()
 	installTestClient(t, srv.URL)
-	if _, err := releaseChecksum(srv.URL+"/checksums.txt", "cliamp-linux-amd64"); err == nil {
+	if _, err := releaseChecksum(srv.URL+"/checksums.txt", "grbfy-linux-amd64"); err == nil {
 		t.Fatal("releaseChecksum accepted a missing asset entry")
 	}
 }
 
 func TestDownloadAndReplaceChecksumMismatchPreservesOriginal(t *testing.T) {
 	dir := t.TempDir()
-	target := filepath.Join(dir, "cliamp")
+	target := filepath.Join(dir, "grbfy")
 	if err := os.WriteFile(target, []byte("OLD"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestDownloadAndReplaceChecksumMismatchPreservesOriginal(t *testing.T) {
 	defer srv.Close()
 	installTestClient(t, srv.URL)
 
-	err := downloadAndReplace(srv.URL+"/cliamp", target, testHash([]byte("different")))
+	err := downloadAndReplace(srv.URL+"/grbfy", target, testHash([]byte("different")))
 	if err == nil || !strings.Contains(err.Error(), "SHA-256 mismatch") {
 		t.Fatalf("downloadAndReplace error = %v, want checksum mismatch", err)
 	}
@@ -190,7 +190,7 @@ func TestDownloadAndReplaceChecksumMismatchPreservesOriginal(t *testing.T) {
 
 func TestDownloadAndReplace(t *testing.T) {
 	dir := t.TempDir()
-	target := filepath.Join(dir, "cliamp")
+	target := filepath.Join(dir, "grbfy")
 	// Pre-create target with old contents.
 	if err := os.WriteFile(target, []byte("OLD"), 0o755); err != nil {
 		t.Fatalf("WriteFile: %v", err)
@@ -204,7 +204,7 @@ func TestDownloadAndReplace(t *testing.T) {
 	defer srv.Close()
 	installTestClient(t, srv.URL)
 
-	if err := downloadAndReplace(srv.URL+"/cliamp-linux-amd64", target, testHash(newContent)); err != nil {
+	if err := downloadAndReplace(srv.URL+"/grbfy-linux-amd64", target, testHash(newContent)); err != nil {
 		t.Fatalf("downloadAndReplace: %v", err)
 	}
 
@@ -228,9 +228,9 @@ func TestDownloadAndReplace(t *testing.T) {
 
 func TestReplaceExecutableOnWindows(t *testing.T) {
 	dir := t.TempDir()
-	target := filepath.Join(dir, "cliamp.exe")
-	download := filepath.Join(dir, "cliamp-upgrade.exe")
-	backup := filepath.Join(dir, ".cliamp.exe.old")
+	target := filepath.Join(dir, "grbfy.exe")
+	download := filepath.Join(dir, "grbfy-upgrade.exe")
+	backup := filepath.Join(dir, ".grbfy.exe.old")
 
 	if err := os.WriteFile(target, []byte("OLD"), 0o755); err != nil {
 		t.Fatal(err)
@@ -263,7 +263,7 @@ func TestReplaceExecutableOnWindows(t *testing.T) {
 
 func TestReplaceExecutableOnWindowsRollsBack(t *testing.T) {
 	dir := t.TempDir()
-	target := filepath.Join(dir, "cliamp.exe")
+	target := filepath.Join(dir, "grbfy.exe")
 	missingDownload := filepath.Join(dir, "missing.exe")
 
 	if err := os.WriteFile(target, []byte("OLD"), 0o755); err != nil {
@@ -285,7 +285,7 @@ func TestReplaceExecutableOnWindowsRollsBack(t *testing.T) {
 
 func TestDownloadAndReplaceHTTPError(t *testing.T) {
 	dir := t.TempDir()
-	target := filepath.Join(dir, "cliamp")
+	target := filepath.Join(dir, "grbfy")
 	if err := os.WriteFile(target, []byte("OLD"), 0o755); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
@@ -296,7 +296,7 @@ func TestDownloadAndReplaceHTTPError(t *testing.T) {
 	defer srv.Close()
 	installTestClient(t, srv.URL)
 
-	err := downloadAndReplace(srv.URL+"/cliamp", target, testHash([]byte("unused")))
+	err := downloadAndReplace(srv.URL+"/grbfy", target, testHash([]byte("unused")))
 	if err == nil {
 		t.Error("downloadAndReplace should error on 404")
 	}
@@ -310,7 +310,7 @@ func TestDownloadAndReplaceHTTPError(t *testing.T) {
 
 func TestDownloadAndReplaceTruncatesOversize(t *testing.T) {
 	dir := t.TempDir()
-	target := filepath.Join(dir, "cliamp")
+	target := filepath.Join(dir, "grbfy")
 	if err := os.WriteFile(target, []byte("OLD"), 0o755); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
@@ -325,7 +325,7 @@ func TestDownloadAndReplaceTruncatesOversize(t *testing.T) {
 	defer srv.Close()
 	installTestClient(t, srv.URL)
 
-	if err := downloadAndReplace(srv.URL+"/cliamp", target, testHash([]byte(body))); err != nil {
+	if err := downloadAndReplace(srv.URL+"/grbfy", target, testHash([]byte(body))); err != nil {
 		t.Fatalf("downloadAndReplace: %v", err)
 	}
 	got, _ := os.ReadFile(target)
