@@ -334,6 +334,9 @@ func (m *Model) handleKeymapKey(msg tea.KeyPressMsg) tea.Cmd {
 
 	case "enter", "l":
 		m.closeKeymap()
+
+	default:
+		return m.transportKey(msg)
 	}
 
 	return nil

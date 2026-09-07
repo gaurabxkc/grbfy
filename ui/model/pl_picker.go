@@ -174,6 +174,9 @@ func (m *Model) handlePlaylistPickerKey(msg tea.KeyPressMsg) tea.Cmd {
 		m.plPicker.newName = ""
 		m.plPicker.cursor = 0
 		m.plPicker.scroll = 0
+
+	default:
+		return m.transportKey(msg)
 	}
 	return nil
 }

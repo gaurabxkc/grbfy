@@ -49,6 +49,20 @@ const (
 
 const commandModeAny = ^commandMode(0)
 
+// commandModeOverlayTransport groups the overlays that keep the playback
+// controls live (see transportKey): every list-style overlay, and none of the
+// modes where a printable key is text the user is typing.
+//
+// The provider-search and online-search *results* screens keep the transport
+// too, but they share a commandMode with their own text-entry screen, so they
+// are left out here rather than advertising the keys while someone is typing a
+// query.
+const commandModeOverlayTransport = commandModeKeymap | commandModeFileBrowser |
+	commandModeNavBrowser | commandModePlaylistManager | commandModePlaylistManagerDirs |
+	commandModePlaylistPicker | commandModeQueue | commandModeUpNext |
+	commandModeThemePicker | commandModeVisPicker | commandModeDevicePicker |
+	commandModeInfo | commandModeLyrics
+
 // commandSpec is the single source of metadata for in-app commands. Dispatch
 // remains in the focused handlers, while keymap, plugin reservations, and help
 // all consume this description.
@@ -200,11 +214,12 @@ var commandRegistry = []commandSpec{
 	{Mode: commandModeThemePickerFilter | commandModeVisPickerFilter, Keys: []string{"enter"}, KeyLabel: "Enter", Label: "Finish filter", ContextHelp: true, Primary: true},
 	{Mode: commandModeQueue, Keys: []string{"d"}, KeyLabel: "d", Label: "Remove", Destructive: true, ContextHelp: true, Primary: true, Enabled: func(m Model) bool { return m.playlist != nil && m.playlist.QueueLen() > 0 }},
 	{Mode: commandModeQueue, Keys: []string{"c"}, KeyLabel: "c", Label: "Clear", Destructive: true, ContextHelp: true},
+	{Mode: commandModeQueue, Keys: []string{"shift+up", "shift+down", "K", "J"}, KeyLabel: "Shift+Up Down / K J", Label: "Reorder", ContextHelp: true, Enabled: func(m Model) bool { return m.playlist != nil && m.playlist.QueueLen() > 1 }},
 	{Mode: commandModeMain, Keys: []string{"U"}, KeyLabel: "U", Label: "Up next", Keymap: true},
 	{Mode: commandModeMain, Keys: []string{"Z"}, KeyLabel: "Z", Label: "Reshuffle", Keymap: true, Enabled: func(m Model) bool { return m.playlist != nil && m.playlist.Shuffled() }},
 	{Mode: commandModeUpNext, Keys: []string{"up", "down", "k", "j"}, KeyLabel: "Up Down", Label: "Navigate", ContextHelp: true},
 	{Mode: commandModeUpNext, Keys: []string{"enter"}, KeyLabel: "Enter", Label: "Play now", ContextHelp: true, Primary: true},
-	{Mode: commandModeUpNext, Keys: []string{"shift+up", "shift+down"}, KeyLabel: "Shift Up Down", Label: "Reorder", ContextHelp: true},
+	{Mode: commandModeUpNext, Keys: []string{"shift+up", "shift+down", "K", "J"}, KeyLabel: "Shift+Up Down / K J", Label: "Reorder", ContextHelp: true},
 	{Mode: commandModeUpNext, Keys: []string{"d"}, KeyLabel: "d", Label: "Remove from queue", Destructive: true, ContextHelp: true},
 	{Mode: commandModeUpNext, Keys: []string{"esc"}, KeyLabel: "Esc", Label: "Back", ContextHelp: true, Cancel: true},
 	{Mode: commandModeFileBrowser, Keys: []string{"R"}, KeyLabel: "R", Label: "Replace queue", Destructive: true, ContextHelp: true},
@@ -232,7 +247,7 @@ var commandRegistry = []commandSpec{
 	{Mode: commandModePlaylistManager, Keys: []string{"f", "n"}, KeyLabel: "f/n", Label: "★/" + favHeart, ContextHelp: true, Enabled: func(m Model) bool {
 		return m.plManager.visible && m.plManager.screen == plMgrScreenTracks
 	}},
-	{Mode: commandModePlaylistManager, Keys: []string{"[", "]"}, KeyLabel: "[ ]", Label: "Reorder", ContextHelp: true, Enabled: func(m Model) bool {
+	{Mode: commandModePlaylistManager, Keys: []string{"[", "]", "shift+up", "shift+down", "K", "J"}, KeyLabel: "[ ] / Shift+Up Down", Label: "Reorder", ContextHelp: true, Enabled: func(m Model) bool {
 		return m.plManager.visible && m.plManager.screen == plMgrScreenTracks
 	}},
 	{Mode: commandModePlaylistManagerDirs, Keys: []string{"esc", "backspace", "h", "left"}, KeyLabel: "Esc", Label: "Back to tracks", ContextHelp: true, Cancel: true},
@@ -243,6 +258,16 @@ var commandRegistry = []commandSpec{
 	{Mode: commandModeFileBrowser, Keys: []string{"D"}, KeyLabel: "D", Label: "Add as dir source", ContextHelp: true, Enabled: func(m Model) bool {
 		return m.fileBrowser.visible && m.fileBrowser.targetPlaylist != ""
 	}},
+
+	// Paging and jump-to-edge work in every list, not just the playlist. The
+	// keys are already reserved by the main-mode entries above; this row exists
+	// so each overlay's own keymap section says so.
+	{Mode: commandModeNavBrowser | commandModePlaylistManager | commandModePlaylistManagerDirs | commandModePlaylistPicker | commandModeQueue | commandModeDevicePicker | commandModeUpNext | commandModeThemePicker | commandModeVisPicker | commandModeKeymap, Keys: []string{"pgup", "pgdown", "ctrl+u", "ctrl+d", "home", "end", "g", "G"}, KeyLabel: "PgUp PgDn / g G", Label: "Page / top / end", ContextHelp: true},
+
+	// An overlay is a view onto the music, not a modal worth losing the
+	// transport over. Listed once, last, so it never displaces an overlay's own
+	// back/primary hint.
+	{Mode: commandModeOverlayTransport, Keys: []string{"space", ">", ".", "<", ",", "+", "=", "-", "shift+left", "shift+right"}, KeyLabel: "Space . ,", Label: "Playback", ContextHelp: true},
 }
 
 func (m Model) commandHelp(mode commandMode) string {

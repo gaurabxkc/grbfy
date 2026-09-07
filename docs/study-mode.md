@@ -78,6 +78,17 @@ On a terminal that supports the kitty graphics protocol (ghostty, kitty) the
 digits are drawn as **real images at screen resolution** rather than block
 characters, so they are genuinely smooth. Elsewhere the block rendering is used.
 
+The clock takes the **theme's accent colour** — the same colour as the seek bar
+and the title — so it changes with <kbd>t</kbd>. On the default theme it stays
+white, because that palette is the terminal's own ANSI colours, which say
+nothing dependable about what will read well as a shape the size of the panel.
+
+Colouring the image clock means re-sending the glyphs: a placeholder cell spends
+its foreground colour carrying the image id, so the terminal cannot tint the
+digits. The outlines are rasterized once and only re-tinted and re-encoded per
+colour, off the render goroutine, so stepping through the theme picker costs the
+clock a frame in the old colour rather than a stall.
+
 ```toml
 [plugins.pomodoro]
 cell_aspect = 3.0        # cell height ÷ width; 2.0 is typical, higher for a
@@ -113,7 +124,10 @@ rounds_before_long_break = 4
 ## Keys
 
 <kbd>W</kbd> and <kbd>F</kbd> are bound at load time and appear in the
-<kbd>Ctrl+K</kbd> keymap under "— plugins —". Plugin keys work only in the main
-view; overlays capture their own input. If a future grbfy release claims either
-key for the core UI, the binding is refused with a warning in
-`~/.config/grbfy/plugins.log` and the shell commands above still work.
+<kbd>Ctrl+K</kbd> keymap under "— plugins —". They work from any list-style
+overlay as well as the main view, because a timer key is about the session
+rather than about whichever list happens to be open; a key the overlay binds
+for itself still wins. Text input is never intercepted. If a future grbfy
+release claims either key for the core UI, the binding is refused with a
+warning in `~/.config/grbfy/plugins.log` and the shell commands above still
+work.

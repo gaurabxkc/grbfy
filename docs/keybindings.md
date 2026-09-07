@@ -4,6 +4,9 @@ Press `Ctrl+K` in any mode, or `?` in the player, to view keybindings. The
 keymap first shows commands for the active screen. It then shows player and
 library commands.
 
+Playback controls keep working while an overlay is open — see
+[Playback works everywhere](#playback-works-everywhere).
+
 ## Playback
 
 | Key | Action |
@@ -19,6 +22,31 @@ library commands.
 | `]` `[` | Change speed by 0.25x |
 | `m` | Toggle mono |
 | `Ctrl+J` | Jump to time |
+
+### Playback works everywhere
+
+`Space`, `>` `.`, `<` `,`, `+` `=` `-`, and `Shift+Left` `Shift+Right` keep
+working inside every list-style overlay: Up Next, the queue, the playlist
+manager, the file browser, the provider browser, the theme and visualizer
+pickers, the device picker, search results, lyrics, track info and the keymap
+itself. An overlay is a view onto the music, not a modal worth losing the
+transport over.
+
+Two rules make that safe:
+
+- **The overlay always wins.** These keys only reach the transport when the
+  overlay ignores them. `Space` still marks an entry in the file browser, and
+  `.` still jumps it to the working directory.
+- **Text input is never touched.** While you are typing — a filter, a search
+  query, a playlist name, `Ctrl+J` jump-to-time — every printable key is text.
+
+Bare `Left` `Right` are excluded on purpose, because overlays navigate with the
+arrow keys; `Shift+Left` `Shift+Right` seek instead. Plugin keybindings
+(`W`, `F`) are global for the same reason and also work from any overlay.
+
+`PgUp` `PgDn` / `Ctrl+U` `Ctrl+D` and `Home` `End` / `g` `G` now work in every
+list too, including the queue, the device picker, the provider browser and the
+search-results overlays.
 
 ## Navigation
 
@@ -104,7 +132,7 @@ and `Esc` clears it.
 | Key | Action |
 |---|---|
 | `a` | Toggle the queue (play next) |
-| `A` | Queue manager |
+| `A` | Queue manager. Inside it: `↑` `↓` / `j` `k` to move, `PgUp` `PgDn` and `g` `G` to page and jump, `Shift+Up` `Shift+Down` / `K` `J` to reorder, `d` to remove, `c` to clear. |
 | `U` | Up Next: the resolved play order — the queue first, then the shuffled or sequential order. |
 | `Z` | Reshuffle: draw a new shuffle order without changing the current track. Requires shuffle to be on. |
 | `x` | Remove the highlighted track from the current playlist |
@@ -120,7 +148,7 @@ and `Esc` clears it.
 | `PgUp` `PgDn` / `Ctrl+U` `Ctrl+D` | Scroll by page |
 | `Home` `End` / `g` `G` | First / last entry |
 | `Enter` | Play that track now. Choosing a queued entry drops the queued entries before it; choosing one from the order leaves the queue to play afterwards. |
-| `Shift+Up` `Shift+Down` | Reorder. Queued entries and order entries cannot trade places — they are different lists. |
+| `Shift+Up` `Shift+Down` / `K` `J` | Reorder. Queued entries and order entries cannot trade places — they are different lists. |
 | `d` | Remove. A queued entry leaves the queue and stays in the playlist; an entry that is simply next in the playlist is removed from the playlist. `Ctrl+Z` undoes either. |
 | `Esc` `b` `q` | Close |
 
@@ -134,7 +162,7 @@ and `Esc` clears it.
 | `p` | Tracks screen: play all from the top |
 | `w` | List: save the current queue with the playlist picker. Tracks: copy marked or selected tracks to another playlist. |
 | `Space` | Tracks: mark/unmark highlighted track and advance |
-| `[` `]` | Tracks: move highlighted track and save the playlist |
+| `[` `]` / `Shift+Up` `Shift+Down` / `K` `J` | Tracks: move highlighted track and save the playlist |
 | `s` | Tracks: sort and save, cycling `track`, `title`, `artist`, `album`, `artist+album`, `path` |
 | `o` | Tracks: open file browser to add files to this playlist |
 | `D` | List: open the file browser to add `[[dir]]` sources to the selected playlist. Tracks: open the directory-sources screen. |
@@ -146,8 +174,8 @@ and `Esc` clears it.
 | `Esc` | Close the playlist manager or go back |
 
 Shift-letter keys switch providers. Playlist-manager track actions use lowercase
-or punctuation keys. `D` is the exception. It opens the directory-sources
-screen.
+or punctuation keys, with three exceptions: `D` opens the directory-sources
+screen, and `K` `J` reorder the highlighted track.
 
 #### Directory sources screen (`D` from the tracks screen)
 

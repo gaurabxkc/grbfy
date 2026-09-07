@@ -79,6 +79,21 @@ unreferenced, per rule 4.
    present in every Spotify track object (`external/spotify/provider_shared.go`), so it
    costs no extra request. Upstream only populated it for the `local` and `mixcloud`
    providers. This feeds desktop notifications and MPRIS, which render real images.
+4. **The transport survives overlays** — upstream lets every overlay swallow the
+   whole keyboard, so opening a list costs you play/pause and skip.
+   `ui/model/keys_transport.go` adds one `transportKey` handler, called from the
+   **`default:` branch** of each overlay's key switch. That ordering is the whole
+   design: the overlay's own cases match first, so Space still marks a file in the
+   browser and `.` still jumps it to the working directory — only keys the overlay
+   ignores fall through. A pre-dispatch intercept would need a hand-maintained
+   conflict list that rots silently. Text-entry modes are never reached. Plugin
+   keys ride the same fallback, so <kbd>W</kbd> and <kbd>F</kbd> work anywhere.
+5. **A themed pomodoro clock** — the image clock's colour has to live in the
+   pixels: a kitty placeholder cell spends its foreground colour carrying the
+   image id, so the terminal cannot tint the digits. `ui/kittyclock.go` therefore
+   rasterizes the glyphs once as white masks and re-tints and re-encodes only per
+   colour, off the render goroutine — otherwise stepping through the theme picker
+   would stall on a PNG encode per keystroke. Default theme stays white.
 
 ### Album art in the TUI was tried and removed
 

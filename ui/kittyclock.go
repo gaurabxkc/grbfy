@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"charm.land/lipgloss/v2"
 	"golang.org/x/image/draw"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
@@ -277,29 +278,91 @@ func ClockGraphicsAvailable() bool {
 	return false
 }
 
+// The clock's colour has to live in the pixels. A placeholder cell spends its
+// foreground colour carrying the image id, so the terminal cannot tint the
+// digits for us — a theme change means sending different images.
+//
+// The outlines are therefore rasterized once into white masks, and only the
+// tinting and PNG encoding are repeated per colour. That is the cheap half:
+// scaling a mask by a colour is a pass over the pixels, where re-rasterizing
+// would walk the font outlines again.
 var (
-	prepareOnce  sync.Once
-	transmitOnce sync.Once
-	glyphsReady  = make(chan []byte, 1)
+	clockTintMu sync.Mutex
+	clockTint   = color.RGBA{255, 255, 255, 255}
 )
 
-// PrepareClockGlyphs starts rasterizing the glyph images in the background.
+// SetClockTint records the colour the clock digits should be drawn in. The
+// next frame re-sends the glyphs if the terminal is holding another colour.
+func SetClockTint(c color.Color) {
+	if c == nil {
+		c = color.RGBA{255, 255, 255, 255}
+	}
+	r, g, b, a := c.RGBA()
+	if a == 0 {
+		return
+	}
+	clockTintMu.Lock()
+	defer clockTintMu.Unlock()
+	clockTint = color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(b >> 8), 255}
+}
+
+func currentClockTint() color.RGBA {
+	clockTintMu.Lock()
+	defer clockTintMu.Unlock()
+	return clockTint
+}
+
+var (
+	prepareOnce sync.Once
+	masksReady  = make(chan []*image.RGBA, 1)
+)
+
+// PrepareClockGlyphs starts rasterizing the glyph masks in the background.
 //
 // Rasterizing all of them takes a few hundred milliseconds, which is worth
 // hiding: called early in startup it overlaps with provider and audio setup,
 // so TransmitClockGlyphs later usually finds the work already done.
 func PrepareClockGlyphs() {
 	prepareOnce.Do(func() {
-		go func() { glyphsReady <- buildClockGlyphs() }()
+		go func() { masksReady <- buildClockMasks() }()
 	})
 }
 
-func buildClockGlyphs() []byte {
+// buildClockMasks rasterizes each glyph white-on-transparent. The result is
+// premultiplied, so every channel already equals the coverage — which is what
+// makes tinting a single multiply.
+func buildClockMasks() []*image.RGBA {
+	initClockFont()
+	masks := make([]*image.RGBA, len(clockGlyphOrder))
+	for i, ch := range clockGlyphOrder {
+		gw := int(float64(clockGlyphW) * glyphAdvance(ch))
+		if gw < 8 {
+			gw = 8
+		}
+		masks[i] = drawClockGlyph(ch, gw, clockGlyphH)
+	}
+	return masks
+}
+
+// tintGlyph scales a white mask to the given colour, keeping it premultiplied.
+func tintGlyph(mask *image.RGBA, c color.RGBA) *image.RGBA {
+	if c.R == 255 && c.G == 255 && c.B == 255 {
+		return mask
+	}
+	out := image.NewRGBA(mask.Bounds())
+	copy(out.Pix, mask.Pix)
+	for i := 0; i < len(out.Pix); i += 4 {
+		a := uint32(out.Pix[i+3])
+		out.Pix[i] = uint8(a * uint32(c.R) / 255)
+		out.Pix[i+1] = uint8(a * uint32(c.G) / 255)
+		out.Pix[i+2] = uint8(a * uint32(c.B) / 255)
+	}
+	return out
+}
+
+func encodeClockGlyphs(masks []*image.RGBA, tint color.RGBA) []byte {
 	// Rendered one at a time: a font.Face keeps internal rasterizer buffers
 	// and is not safe to share across goroutines. Real type is fast enough
-	// that this costs far less than the outline rasterizer it replaced.
-	initClockFont()
-
 	var out bytes.Buffer
 
 	// Delete anything already stored under these ids first. Images outlive the
@@ -311,16 +374,15 @@ func buildClockGlyphs() []byte {
 		fmt.Fprintf(&out, "\x1b_Ga=d,d=I,i=%d,q=2\x1b\\", clockGlyphBase+i)
 	}
 
-	for i, ch := range clockGlyphOrder {
-		gw := int(float64(clockGlyphW) * glyphAdvance(ch))
-		if gw < 8 {
-			gw = 8
+	for i := range clockGlyphOrder {
+		if i >= len(masks) || masks[i] == nil {
+			continue
 		}
 		// Fast compression: this is on the startup path and the data goes to a
 		// local terminal, so encode time matters more than size.
 		encoder := png.Encoder{CompressionLevel: png.BestSpeed}
 		var enc bytes.Buffer
-		if err := encoder.Encode(&enc, drawClockGlyph(ch, gw, clockGlyphH)); err != nil {
+		if err := encoder.Encode(&enc, tintGlyph(masks[i], tint)); err != nil {
 			continue
 		}
 		b64 := base64.StdEncoding.EncodeToString(enc.Bytes())
@@ -343,18 +405,64 @@ func buildClockGlyphs() []byte {
 	return out.Bytes()
 }
 
-// TransmitClockGlyphs writes the glyph images to the terminal.
+type encodedGlyphs struct {
+	tint color.RGBA
+	data []byte
+}
+
+var (
+	// sentTint is the colour the terminal is currently holding. Its zero value
+	// has alpha 0, which no real tint has, so it also means "nothing sent yet".
+	sentTint     color.RGBA
+	cachedMasks  []*image.RGBA
+	tintBuilding color.RGBA
+	tintEncoded  = make(chan encodedGlyphs, 1)
+)
+
+// TransmitClockGlyphs writes the glyph images to the terminal, re-sending them
+// when the theme has changed the clock's colour.
 //
 // This cannot be done before the program starts: entering the alternate screen
 // discards stored images, so anything sent beforehand is gone by the time the
-// clock is drawn. It is therefore sent from the render path, once, alongside
-// the placements — which is safe because a view is built on the same goroutine
+// clock is drawn. It is therefore sent from the render path, alongside the
+// placements — which is safe because a view is built on the same goroutine
 // that writes the frame, so this lands before the frame rather than inside it.
+//
+// Only the first send blocks. A later re-tint is encoded on another goroutine
+// and picked up by a subsequent frame, so stepping through the theme picker
+// costs the clock a frame in the old colour rather than stalling the UI on a
+// PNG encode per keystroke. The write itself always happens here, never off
+// the render goroutine.
 func TransmitClockGlyphs(w io.Writer) {
-	transmitOnce.Do(func() {
+	// Collect a finished encode, if one is waiting.
+	select {
+	case done := <-tintEncoded:
+		tintBuilding = color.RGBA{}
+		_, _ = w.Write(done.data)
+		sentTint = done.tint
+	default:
+	}
+
+	want := currentClockTint()
+	if sentTint == want || tintBuilding == want {
+		return
+	}
+
+	if cachedMasks == nil {
 		PrepareClockGlyphs()
-		_, _ = w.Write(<-glyphsReady)
-	})
+		cachedMasks = <-masksReady
+	}
+	if sentTint == (color.RGBA{}) {
+		// Nothing on screen yet: an async first send would leave the clock
+		// blank for a frame, which on a one-second clock reads as a fault.
+		_, _ = w.Write(encodeClockGlyphs(cachedMasks, want))
+		sentTint = want
+		return
+	}
+
+	tintBuilding = want
+	masks := cachedMasks
+	go func() { tintEncoded <- encodedGlyphs{want, encodeClockGlyphs(masks, want)} }()
 }
 
 func glyphAdvance(ch rune) float64 {
@@ -458,14 +566,14 @@ func ExpandImageClock(out string, rows, cols int) string {
 	fallback := rest[end+len(clockMarker):]
 
 	if !ClockGraphicsAvailable() || rows <= 0 || cols <= 0 {
-		return fallback
+		return styleClockFallback(fallback)
 	}
 	return renderImageClock(text, rows, cols, fallback)
 }
 
 func renderImageClock(text string, rows, cols int, fallback string) string {
 	if text == "" {
-		return fallback
+		return styleClockFallback(fallback)
 	}
 
 	// Size the glyphs to the panel, keeping a digit's proportions. A digit is
@@ -490,7 +598,7 @@ func renderImageClock(text string, rows, cols int, fallback string) string {
 		glyphRows--
 	}
 	if glyphCols < 2 || glyphRows < 2 {
-		return fallback
+		return styleClockFallback(fallback)
 	}
 	gap := max(1, int(float64(glyphCols)*clockGapFraction))
 
@@ -547,4 +655,30 @@ func SetClockCellAspect(a float64) {
 	if a >= 1.0 && a <= 5.0 {
 		clockCellAspect = a
 	}
+}
+
+// clockTextStyle colours the block-character clock, which is ordinary text and
+// so can simply be styled. Zero value on the default theme: the digits then
+// keep the terminal's own foreground, matching the white the image path draws.
+var clockTextStyle lipgloss.Style
+
+// applyClockTheme points both clock renderers at the theme's clock colour.
+func applyClockTheme(c color.Color) {
+	if c == nil {
+		clockTextStyle = lipgloss.Style{}
+		SetClockTint(color.RGBA{255, 255, 255, 255})
+		return
+	}
+	clockTextStyle = lipgloss.NewStyle().Foreground(c)
+	SetClockTint(c)
+}
+
+// styleClockFallback colours the plugin's own block rendering. The visualizer's
+// line fitting decodes escape sequences, so the added colour does not disturb
+// its width accounting.
+func styleClockFallback(s string) string {
+	if s == "" || ColorClock == nil {
+		return s
+	}
+	return clockTextStyle.Render(s)
 }
