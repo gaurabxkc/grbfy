@@ -90,7 +90,7 @@ fields support these editor keys:
 | `t` | Choose theme |
 | `v` | Cycle visualizer |
 | `Ctrl+V` | Pick visualizer from a list (live preview) |
-| `V` | Full screen visualizer |
+| `V` | Full screen visualizer. Inside it: `u` toggles the up-next list in place of the spectrum, `v` cycles mode, `Esc` `b` `V` exit. |
 | `Ctrl+H` | Toggle album headers |
 | `Ctrl+G` | Toggle the key-binding hint bar |
 

@@ -531,10 +531,10 @@ func (m Model) renderFullVisualizer() string {
 		m.renderTrackInfo(),
 		m.renderTimeStatus(),
 		"",
-		m.renderSpectrum(),
+		m.fullVisSpectrumOrQueue(),
 		m.renderSeekBar(),
 		"",
-		helpKey("V", "Exit ") + helpKey("v", "Mode:"+m.vis.ModeName()+" ") + helpKey("Spc", "▶❚❚ ") + helpKey("<>", "Trk ") + helpKey("+-", "Vol ") + helpKey("?", "Keys"),
+		helpKey("V", "Exit ") + helpKey("v", "Mode:"+m.vis.ModeName()+" ") + m.fullVisQueueHelp() + helpKey("Spc", "▶❚❚ ") + helpKey("<>", "Trk ") + helpKey("+-", "Vol ") + helpKey("?", "Keys"),
 	}
 
 	return strings.Join(sections, "\n")

@@ -1006,6 +1006,8 @@ func (m *Model) handleFullVisualizerKey(msg tea.KeyPressMsg) tea.Cmd {
 		m.vis.CycleMode()
 		m.vis.RequestRefresh()
 		m.refreshChrome()
+	case "u":
+		m.toggleFullVisQueue()
 	case "ctrl+k", "?":
 		m.exitFullVisualizer()
 		m.openKeymap()
