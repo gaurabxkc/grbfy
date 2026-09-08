@@ -496,6 +496,9 @@ type Model struct {
 
 	// Full-screen visualizer mode (Shift+V)
 	fullVis bool
+	// fullVisQueue swaps the fullscreen visualizer's spectrum for the up-next
+	// list (see fullvis_queue.go). Toggled with u while fullscreen.
+	fullVisQueue bool
 
 	autoPlay        bool // start playing immediately on launch
 	lowPower        bool // lower UI/render cadences in low-power mode
