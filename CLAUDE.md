@@ -94,6 +94,96 @@ unreferenced, per rule 4.
    rasterizes the glyphs once as white masks and re-tints and re-encodes only per
    colour, off the render goroutine — otherwise stepping through the theme picker
    would stall on a PNG encode per keystroke. Default theme stays white.
+6. **Spotify playlist folders** — the public Web API's `/v1/me/playlists` has no
+   folder concept at all, so upstream (and grbfy until now) showed every playlist
+   flattened under ownership-based buckets ("Your playlists" / "Followed
+   playlists"). `external/spotify/rootlist.go` reads the same private "rootlist"
+   resource (`hm://playlist/v2/user/<user>/rootlist`) Spotify's own apps use for
+   folders, over the AP/Mercury/spclient connection go-librespot already opens
+   for playback — no new auth flow or scope, since that connection is
+   authenticated via the shared keymaster client's "streaming" token regardless
+   of which client_id is configured for the Web API leg (`session.go`'s
+   `playbackOAuthScopes` comment). Folders are plain "start-group"/"end-group"
+   marker entries bracketing playlist entries in an otherwise flat, undocumented
+   protobuf list — nesting is just bracket depth. This is not part of any
+   documented Spotify API and could change or break without notice; failure is
+   logged and swallowed (`rootlistFolders`), falling back to the old flat
+   Section grouping rather than breaking playlist loading.
+7. **Folders play as one queue** — a folder is not just a heading: each one gets
+   a synthetic `spotify:folder:<path>` row that `Tracks()` expands into the
+   concatenated tracks of every playlist inside it, subfolders included
+   (`folderTracks`). It rides the ordinary "select row → Tracks(ID) → load"
+   path that saved albums already use, so no UI code was involved. One child
+   failing (region-locked, deleted) is skipped with a warning rather than
+   sinking the whole folder.
+8. **Spotify artist browsing** — Spotify was the only configured provider that
+   implemented neither `ArtistBrowser` nor `TrackArtistResolver`, so the `N`
+   browser other providers share had nothing to show for it: no discography, no
+   "jump to this track's artist". `external/spotify/artist_browse.go` adds both
+   plus a `BrowseEntryProvider` shortcut. No UI changes — the browser detects
+   capability by type assertion (`docs/provider-development.md` is explicit
+   about not touching it). Two things are worth remembering here: `Artists()`
+   pages by **cursor** (`/v1/me/following` is the only Spotify endpoint in this
+   package that does, everything else is limit/offset), and both methods must
+   paginate to completion internally because the UI calls them exactly once and
+   treats the result as final. `ArtistForTrack` does no I/O — the artist ID is
+   stashed in `ProviderMeta` when the track is parsed, which is why the
+   `fields=` projection in `Tracks()` now asks for `artists(id,name)`.
+   Both `Artists()` and `ArtistAlbums()` hit the exact Development Mode
+   quota bug this fork already fixed once for `/v1/search`
+   (`dc5eaee`, `isInvalidLimit`/`devModeSearchLimit` in `provider.go`):
+   `/v1/me/following` and `/v1/artists/{id}/albums` are catalog endpoints
+   too, and reject a limit above 10 with the same misleading `400 "Invalid
+   limit"`. Confirmed against a real account, not theoretical — a user hit
+   it immediately on first use. Both methods now try the full page size
+   first and fall back to `devModeSearchLimit` only on rejection, reusing
+   the existing helper rather than duplicating the detection logic.
+9. **A lyrics visualizer** — `ui/vis_lyrics.go` draws the current synced lyric
+   line big, as pixel-art letters, reusing `vis_logo.go`'s Braille-bitmap
+   technique (hand-authored 5×7 glyphs, stamped into a dot grid, rendered as
+   Braille) rather than plain text — a fullscreen (`V`) karaoke line is meant
+   to read at a glance. A scale search picks the largest size that still lets
+   the line wrap within a few rows for the current panel size, and falls back
+   to small centered text whenever there is no synced line (radio streams, no
+   LRCLIB/NetEase match, an instrumental intro before the first line) or the
+   line uses a character outside the hand-authored glyph set — most notably
+   any non-Latin script. There is no realistic way to hand-author a 5×7
+   bitmap for Devanagari conjuncts, so those lyrics fall back to normal-size
+   text rather than drawing gaps; a `DECDHL` terminal-native double-height
+   escape was considered instead (would work for any script) but rejected
+   without testing, since it's the same class of trick that already failed
+   for album art (see below) — Bubbletea's renderer doesn't pass raw escapes
+   through untouched, and there's no way to verify it from here.
+   This is Go rather than a Lua plugin, against rule 3, deliberately: the Lua
+   visualizer API exposes playback position and track metadata but **no**
+   lyrics, so a plugin would have to re-implement fetching, LRC parsing and
+   caching from scratch and keep its state separate from the app's. The
+   active-line scan the `y` overlay had inline is now `lyrics.ActiveLineIndex`,
+   shared by both. The one intrusion into upstream state is a `Lyrics` field on
+   `VisTickContext`, filled once per tick by `visualizerLyricsContext` — the
+   driver never reaches into player or lyrics state itself.
+10. **An unavailable track skips instead of demanding sign-in** — `isAuthError`
+    treated *every* `audio.KeyProviderError` as a session failure, so Spotify
+    refusing the AES key for one region-locked or pulled track triggered a full
+    reconnect and then the sign-in prompt. Key code 2 (`aesKeyErrUnavailable`)
+    means "this account cannot play this track" and reconnecting cannot fix it,
+    so it now surfaces as `playlist.ErrTrackUnavailable` and
+    `ui/model/unavailable.go` marks the track `Unplayable` and advances. The
+    mark is what bounds the recursion: `Playlist.Next` skips unplayable
+    entries, so a queue of dead tracks winds down instead of looping on one.
+    Rare before autoplay; constant after it, since Last.fm suggestions resolve
+    to whatever Spotify search returns, region locks included.
+
+11. **Radio is a context, not a habit** — playing a track straight from search
+    is a different intent from opening a playlist, so `Playlist.PlayNow`
+    (`playlist/playnow.go`) drops the old list's remaining `order` while
+    keeping anything `q`-queued, and marks the playlist `radio`. `Replace`
+    clears that mark, so loading any real list ends radio mode. The flag
+    reaches plugins as `grbfy.player.radio()`, which is what stops
+    `autoplay.lua` from piling Last.fm picks onto a playlist that already
+    says what plays next — seeded, worse, from whatever played before the
+    switch. `c` clears the play-next queue from the main view for the times
+    you want it gone anyway.
 
 ### Album art in the TUI was tried and removed
 

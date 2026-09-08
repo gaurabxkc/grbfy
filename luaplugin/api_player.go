@@ -16,6 +16,19 @@ func registerPlayerAPI(L *lua.LState, grbfy *lua.LTable, state *StateProvider) {
 		return 1
 	}))
 
+	// grbfy.player.radio() -> bool: true when the current context is a
+	// single ad-hoc track (played from search) rather than a loaded
+	// playlist. Autoplay-style plugins use it to avoid piling suggestions
+	// onto a playlist that already says what plays next.
+	L.SetField(tbl, "radio", L.NewFunction(func(L *lua.LState) int {
+		if state.Radio != nil {
+			L.Push(lua.LBool(state.Radio()))
+		} else {
+			L.Push(lua.LFalse)
+		}
+		return 1
+	}))
+
 	// grbfy.player.position() -> number (seconds)
 	L.SetField(tbl, "position", L.NewFunction(func(L *lua.LState) int {
 		if state.Position != nil {

@@ -515,13 +515,20 @@ func TestIPCTrackActionsNonFeed(t *testing.T) {
 							t.Fatalf("job = %+v, want immediate success", completed)
 						}
 					}
+					// grbfy: track.play starts a fresh radio session (PlayNow) and
+					// track.queue tags the entry as plugin-queued (auto_queued.go).
 					track := ipcTrackFromInfo(info)
-					wantIndex := len(original)
-					if op == "track.queue" {
-						queued = append(queued, track)
-						wantIndex = 0
+					if op == "track.play" {
+						want, _ := ipcPodcastTestModel()
+						want.playlist.PlayNow(track)
+						if !reflect.DeepEqual(m.playlist.Tracks(), want.playlist.Tracks()) || !reflect.DeepEqual(m.playlist.QueueTracks(), want.playlist.QueueTracks()) || m.playlist.Index() != want.playlist.Index() {
+							t.Fatal("non-feed single-track behavior changed")
+						}
+						return
 					}
-					if !reflect.DeepEqual(m.playlist.Tracks(), append(original, track)) || !reflect.DeepEqual(m.playlist.QueueTracks(), queued) || m.playlist.Index() != wantIndex {
+					track = markAutoQueued(track)
+					queued = append(queued, track)
+					if !reflect.DeepEqual(m.playlist.Tracks(), append(original, track)) || !reflect.DeepEqual(m.playlist.QueueTracks(), queued) || m.playlist.Index() != 0 {
 						t.Fatal("non-feed single-track behavior changed")
 					}
 				})

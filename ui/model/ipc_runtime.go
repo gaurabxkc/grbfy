@@ -257,7 +257,7 @@ func (m *Model) handleV2QueueRequest(ctx context.Context, jobs *ipc.JobStore, jo
 			m.completeV2Job(jobs, jobID, m.v2PlaylistResponse())
 			return cmd
 		}
-		cmd := m.queueTrackNext(track)
+		cmd := m.queueTrackNext(markAutoQueued(track))
 		m.completeV2Job(jobs, jobID, m.v2PlaylistResponse())
 		return cmd
 	}

@@ -161,9 +161,10 @@ preference remains saved for a wider layout. See
 
 | Key | Action |
 |---|---|
-| `a` | Toggle the queue (play next) |
+| `a` / `q` | Toggle the queue (play next) for the selected track. `q` matches what it does in the search overlays; `Ctrl+C` quits from this pane. |
 | `A` | Queue manager. Inside it: `↑` `↓` / `j` `k` to move, `PgUp` `PgDn` and `g` `G` to page and jump, `Shift+Up` `Shift+Down` / `K` `J` to reorder, `d` to remove, `c` to clear. |
 | `F` | Subscribed shows overlay (any provider that keeps subscriptions) |
+| `c` | Clear the whole play-next queue without opening the manager (`Ctrl+Z` to undo) |
 | `U` | Up Next: the resolved play order — the queue first, then the shuffled or sequential order. |
 | `Z` | Reshuffle: draw a new shuffle order without changing the current track. Requires shuffle to be on. |
 | `x` | Remove the highlighted track from the current playlist |
@@ -391,4 +392,4 @@ query to their search API. Their services control matching rules.
 | Key | Action |
 |---|---|
 | `?` / `Ctrl+K` | Show keymap |
-| `q` | Quit |
+| `q` | Quit — except in the playlist pane, where it queues the selected track (`Ctrl+C` quits from there) |

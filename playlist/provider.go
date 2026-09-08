@@ -11,6 +11,12 @@ var ErrNeedsAuth = errors.New("sign-in required")
 // into one coherent result. Reopening the list starts a clean load.
 var ErrListChanged = errors.New("list changed while loading")
 
+// ErrTrackUnavailable is returned when one track cannot be played but the
+// session is fine — region locks, pulled catalogue entries, or a resolved ID
+// the account has no rights to. Callers should skip the track and continue
+// rather than stopping playback or prompting for sign-in.
+var ErrTrackUnavailable = errors.New("track unavailable")
+
 // PlaylistInfo describes a playlist with its name and track count.
 //
 // DurationSecs is optional: providers that can compute it cheaply should

@@ -27,12 +27,16 @@ import (
 
 // Compile-time interface checks.
 var (
-	_ provider.Searcher        = (*SpotifyProvider)(nil)
-	_ provider.PlaylistWriter  = (*SpotifyProvider)(nil)
-	_ provider.PlaylistCreator = (*SpotifyProvider)(nil)
-	_ provider.CustomStreamer  = (*SpotifyProvider)(nil)
-	_ provider.Closer          = (*SpotifyProvider)(nil)
-	_ provider.TrackPager      = (*SpotifyProvider)(nil)
+	_ provider.Searcher            = (*SpotifyProvider)(nil)
+	_ provider.PlaylistWriter      = (*SpotifyProvider)(nil)
+	_ provider.PlaylistCreator     = (*SpotifyProvider)(nil)
+	_ provider.CustomStreamer      = (*SpotifyProvider)(nil)
+	_ provider.Closer              = (*SpotifyProvider)(nil)
+	_ provider.TrackPager          = (*SpotifyProvider)(nil)
+	_ provider.AlbumTrackLoader    = (*SpotifyProvider)(nil)
+	_ provider.ArtistBrowser       = (*SpotifyProvider)(nil)
+	_ provider.TrackArtistResolver = (*SpotifyProvider)(nil)
+	_ provider.BrowseEntryProvider = (*SpotifyProvider)(nil)
 )
 
 // maxResponseBody limits JSON API responses to 10 MB.
@@ -74,6 +78,12 @@ type SpotifyProvider struct {
 	// Playlist list cache to avoid redundant API calls on provider switch.
 	listCache   []playlist.PlaylistInfo
 	listCacheAt time.Time
+
+	// folderChildren maps a folder path (see rootlist.go) to the real
+	// playlist IDs it recursively contains, refreshed alongside listCache.
+	// Tracks() consults it to expand a synthetic folder ID into the
+	// concatenated tracks of every playlist inside that folder.
+	folderChildren map[string][]string
 }
 
 const playlistListCacheTTL = 5 * time.Minute
@@ -316,17 +326,76 @@ func (p *SpotifyProvider) Playlists() ([]playlist.PlaylistInfo, error) {
 	}
 	all = append(all, albums...)
 
-	// Group playlists by section so the UI can emit one header per group.
-	// Library first, then owned, then followed, then saved albums; preserve
-	// API order within each section.
-	sectionOrder := map[string]int{
-		"Library":            0,
-		"Your playlists":     1,
-		"Followed playlists": 2,
-		savedAlbumSection:    3,
+	// Spotify folders aren't part of the Web API response above (see
+	// rootlist.go) — patch the flat ownership-based Section in for any
+	// playlist the user has actually placed in a folder, using the real
+	// folder path instead.
+	rl := p.rootlistFolders(ctx)
+	for i := range all {
+		if path, ok := rl.folderOf[all[i].ID]; ok {
+			all[i].Section = path
+		}
 	}
+
+	// Give every folder a synthetic "play all" row so the whole folder is
+	// playable as one queue, same as a real playlist — child playlists stay
+	// listed individually right below it. TrackCount sums the folder's
+	// direct + nested playlists that actually resolved above; a playlist
+	// dropped for some other reason (e.g. a savedAlbums fetch error further
+	// up would have already returned) simply isn't counted.
+	trackCountByID := make(map[string]int, len(all))
+	for _, item := range all {
+		trackCountByID[item.ID] = item.TrackCount
+	}
+	for _, path := range rl.paths {
+		total := 0
+		for _, id := range rl.children[path] {
+			total += trackCountByID[id]
+		}
+		all = append(all, playlist.PlaylistInfo{
+			ID:         spotifyFolderIDPrefix + path,
+			Name:       "📁 " + folderLeafName(path),
+			TrackCount: total,
+			Section:    path,
+		})
+	}
+
+	p.mu.Lock()
+	p.folderChildren = rl.children
+	p.mu.Unlock()
+
+	// Group playlists by section so the UI can emit one header per group.
+	// Library first, then real folders (in the user's own rootlist order,
+	// including folders that only contain nested subfolders), then owned,
+	// then followed, then saved albums; preserve API order within each
+	// non-folder section, and rootlist order within each folder — with each
+	// folder's own "play all" row sorted first.
+	sectionOrder := map[string]int{"Library": 0}
+	for i, path := range rl.paths {
+		sectionOrder[path] = i + 1
+	}
+	nextSection := len(rl.paths) + 1
+	sectionOrder["Your playlists"] = nextSection
+	sectionOrder["Followed playlists"] = nextSection + 1
+	sectionOrder[savedAlbumSection] = nextSection + 2
+
 	sort.SliceStable(all, func(i, j int) bool {
-		return sectionOrder[all[i].Section] < sectionOrder[all[j].Section]
+		si, sj := sectionOrder[all[i].Section], sectionOrder[all[j].Section]
+		if si != sj {
+			return si < sj
+		}
+		pi, iok := rl.order[all[i].ID]
+		pj, jok := rl.order[all[j].ID]
+		if _, isFolder := isSpotifyFolderID(all[i].ID); isFolder {
+			pi, iok = -1, true
+		}
+		if _, isFolder := isSpotifyFolderID(all[j].ID); isFolder {
+			pj, jok = -1, true
+		}
+		if iok && jok {
+			return pi < pj
+		}
+		return false
 	})
 
 	p.mu.Lock()
@@ -401,6 +470,7 @@ func (p *SpotifyProvider) savedAlbums(ctx context.Context) ([]playlist.PlaylistI
 // Track.Path is set to the canonical spotify: URI for the player to resolve.
 // Results are cached by snapshot_id; unchanged playlists skip the API call.
 // Saved-album entries (savedAlbumIDPrefix) are expanded via AlbumTracks.
+// Folder entries (spotifyFolderIDPrefix) are expanded via folderTracks.
 func (p *SpotifyProvider) Tracks(playlistID string) ([]playlist.Track, error) {
 	if err := p.ensureSession(); err != nil {
 		return nil, err
@@ -408,6 +478,9 @@ func (p *SpotifyProvider) Tracks(playlistID string) ([]playlist.Track, error) {
 
 	if albumID, ok := isSavedAlbumID(playlistID); ok {
 		return p.AlbumTracks(albumID)
+	}
+	if path, ok := isSpotifyFolderID(playlistID); ok {
+		return p.folderTracks(path)
 	}
 	// Check cache — if we have tracks and the snapshot_id hasn't changed, return cached.
 	p.mu.Lock()
@@ -472,7 +545,9 @@ func (p *SpotifyProvider) fetchTracksPage(ctx context.Context, playlistID string
 	}
 	path := "/v1/me/tracks"
 	if playlistID != savedTracksPlaylistID {
-		query.Set("fields", "items(item(id,name,type,uri,artists(name),album(name,release_date),show(name),release_date,duration_ms,track_number,is_playable,restrictions(reason))),total")
+		// artists(id,name), not artists(name): the id feeds
+		// ArtistForTrack so a playlist track can jump to its artist.
+		query.Set("fields", "items(item(id,name,type,uri,artists(id,name),album(name,release_date),show(name),release_date,duration_ms,track_number,is_playable,restrictions(reason))),total")
 		path = fmt.Sprintf("/v1/playlists/%s/items", playlistID)
 	}
 	resp, err := p.webAPI(ctx, "GET", path, query)
@@ -705,7 +780,28 @@ func isAuthError(err error) bool {
 		return false
 	}
 	var keyErr *audio.KeyProviderError
-	return errors.As(err, &keyErr)
+	if !errors.As(err, &keyErr) {
+		return false
+	}
+	// An AES key refusal is not automatically a session problem. Spotify
+	// answers with aesKeyErrUnavailable for a track the account simply can't
+	// play — region-locked, pulled from the catalogue, or a relinked ID with
+	// no rights — and reconnecting cannot fix that. Treating it as auth sent
+	// the user to the sign-in prompt for what is really one bad track, which
+	// autoplay hits often since Last.fm suggestions resolve to whatever
+	// Spotify search returns.
+	return keyErr.Code != aesKeyErrUnavailable
+}
+
+// aesKeyErrUnavailable is the AES key error code Spotify returns when the
+// track is not available to this account, as opposed to a session failure.
+const aesKeyErrUnavailable = 2
+
+// isTrackUnavailable reports whether err is Spotify refusing the audio key
+// because the track itself cannot be played by this account.
+func isTrackUnavailable(err error) bool {
+	var keyErr *audio.KeyProviderError
+	return errors.As(err, &keyErr) && keyErr.Code == aesKeyErrUnavailable
 }
 
 // URISchemes returns the URI prefixes handled by this provider.
@@ -745,6 +841,20 @@ func (p *SpotifyProvider) NewStreamer(uri string) (beep.StreamSeekCloser, beep.F
 	s, err := tryStream()
 	if err == nil {
 		return s, s.Format(), s.Duration(), nil
+	}
+	if isTrackUnavailable(err) {
+		// Retry once before believing it. The key request also fails this way
+		// under transient load — several streams being set up at once, a
+		// session still settling — and treating the first refusal as final
+		// mislabels perfectly playable tracks as unavailable.
+		if s, retryErr := tryStream(); retryErr == nil {
+			return s, s.Format(), s.Duration(), nil
+		} else if !isTrackUnavailable(retryErr) {
+			return nil, beep.Format{}, 0, fmt.Errorf("spotify: new stream: %w", retryErr)
+		}
+		// Refused twice: one bad track, not a bad session. Reconnecting would
+		// not help, so the caller skips it instead of stopping.
+		return nil, beep.Format{}, 0, fmt.Errorf("spotify: %s: %w", uri, playlist.ErrTrackUnavailable)
 	}
 	if !isAuthError(err) {
 		return nil, beep.Format{}, 0, fmt.Errorf("spotify: new stream: %w", err)
