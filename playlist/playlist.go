@@ -337,6 +337,11 @@ const (
 	MetaKindAlbum = "album"
 	// MetaAlbumID carries the provider-side album id of an album placeholder.
 	MetaAlbumID = "albumID"
+	// MetaAutoQueued marks a track a plugin queued on its own (autoplay
+	// suggestions) rather than one the listener chose. PlayNow keeps chosen
+	// entries across a new radio session and drops these, so starting a
+	// second search does not inherit the first session's filler.
+	MetaAutoQueued = "autoQueued"
 )
 
 // IsAlbum reports whether the track is an album placeholder rather than
@@ -370,6 +375,7 @@ type Playlist struct {
 	queuePositions map[int]int // first 1-based queue position by track index
 	queuedIdx      int         // track index currently playing from queue, -1 if none
 	bookmarkCount  int         // number of tracks with Bookmark set
+	radio          bool        // ad-hoc single-track context (see PlayNow)
 }
 
 // Snapshot preserves the complete mutable playback state for later restoration.
@@ -486,6 +492,8 @@ func (p *Playlist) Replace(tracks []Track) {
 	p.queue = nil
 	p.queuePositions = nil
 	p.queuedIdx = -1
+	// Loading a real list ends radio mode: the list itself is what plays next.
+	p.radio = false
 	p.rebuildBookmarkCount()
 	if p.shuffle && len(tracks) > 0 {
 		p.doShuffle()
@@ -703,7 +711,17 @@ func (p *Playlist) ActivateSelected() (SelectionActivation, bool) {
 	}
 	p.pos = orderPos
 	p.queuedIdx = -1
-	if p.pos != origPos || p.queuedIdx != origQueuedIdx {
+	// Landing on a queued track consumes it and everything queued before it:
+	// choosing an entry past them is a decision to skip them, which is what
+	// JumpToUpcoming already does for the same choice made in Up Next.
+	dropped := p.dropQueueThrough(idx)
+	if dropped {
+		p.queuedIdx = idx
+	}
+	// dropped is part of the condition: consuming queue entries is a change
+	// even when pos and queuedIdx land on the values they already had, and
+	// without it the UI would keep rendering entries that are gone.
+	if dropped || p.pos != origPos || p.queuedIdx != origQueuedIdx {
 		p.revision++
 	}
 	return SelectionActivation{

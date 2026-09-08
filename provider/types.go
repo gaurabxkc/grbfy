@@ -68,6 +68,10 @@ const (
 	MetaTidalID     = "tidal.id"
 	MetaLyrionID    = "lyrion.id"
 	MetaMixcloudKey = "mixcloud.key"
+	// MetaSpotifyArtistID is the Spotify ID of a track's primary
+	// (first-listed) artist, stashed when the track is parsed so
+	// SpotifyProvider.ArtistForTrack can resolve it without a second request.
+	MetaSpotifyArtistID = "spotify.artist_id"
 	// MetaMixcloudCreator is the profile username that owns a Mixcloud show.
 	MetaMixcloudCreator = "mixcloud.creator"
 	// MetaMixcloudExclusive marks a show that Mixcloud may restrict to

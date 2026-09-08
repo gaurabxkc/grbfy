@@ -23,9 +23,11 @@ import (
 	librespot "github.com/devgianlu/go-librespot"
 	librespotPlayer "github.com/devgianlu/go-librespot/player"
 	devicespb "github.com/devgianlu/go-librespot/proto/spotify/connectstate/devices"
+	playlist4pb "github.com/devgianlu/go-librespot/proto/spotify/playlist4"
 	"github.com/devgianlu/go-librespot/session"
 	"golang.org/x/oauth2"
 	spotifyoauth2 "golang.org/x/oauth2/spotify"
+	"google.golang.org/protobuf/proto"
 )
 
 // storedCreds holds persisted Spotify credentials for re-authentication.
@@ -648,6 +650,53 @@ func (s *Session) webApiWithBody(ctx context.Context, method, path string, query
 	}
 
 	return http.DefaultClient.Do(req)
+}
+
+// rootlistItems fetches the raw folder/playlist entries from the user's
+// Spotify "rootlist" over the same AP/spclient connection already
+// authenticated for playback (see the "playback" OAuth leg in
+// interactiveOAuthFlows). This is the private, undocumented resource
+// Spotify's own apps read to know playlist folders — the public Web API has
+// no folder concept and never returns one.
+//
+// Holds s.mu.RLock() across the network call, matching NewStream: reconnect()
+// and Close() take the full Lock, so a concurrent teardown can't be pulled
+// out from under an in-flight request.
+func (s *Session) rootlistItems(ctx context.Context) ([]*playlist4pb.Item, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.sess == nil {
+		return nil, fmt.Errorf("session closed")
+	}
+	username := s.sess.Username()
+	if username == "" {
+		return nil, fmt.Errorf("no username available")
+	}
+
+	resp, err := s.sess.Spclient().RequestHm(ctx, "GET", "hm://playlist/v2/user/"+url.PathEscape(username)+"/rootlist", nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("rootlist request: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("rootlist status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("rootlist read: %w", err)
+	}
+
+	var content playlist4pb.SelectedListContent
+	if err := proto.Unmarshal(body, &content); err != nil {
+		return nil, fmt.Errorf("rootlist decode: %w", err)
+	}
+	if content.GetContents() == nil {
+		return nil, nil
+	}
+	return content.GetContents().GetItems(), nil
 }
 
 // Close releases all session and player resources.

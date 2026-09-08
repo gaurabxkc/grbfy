@@ -38,6 +38,8 @@ Spotify introduced the current Development Mode restrictions for new apps on Feb
 
 Search remains available in Development Mode, but `/v1/search` accepts at most **10 results per request**. A larger request returns `400 "Invalid limit"`. This does not mean search is blocked. Cliamp uses `offset` to page results in groups of 10. <kbd>Ctrl+F</kbd> returns the full result set.
 
+The artist browser (grbfy's Followed Artists / artist discography views, `N`) hits the same cap on `/v1/me/following` and `/v1/artists/{id}/albums` — both are catalog endpoints, not library ones. grbfy tries the full page size first and falls back to pages of 10 only if Spotify rejects it, the same way search does, so this is transparent in normal use.
+
 Other Development Mode changes remove endpoints such as `/v1/browse/new-releases`. They restrict playlist items to playlists the user owns or collaborates on. `/v1/search` remains available and does not require Extended Quota Mode.
 
 ### Alternative: built-in shared client ID

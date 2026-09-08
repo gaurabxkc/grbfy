@@ -537,6 +537,13 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 
 	switch msg.String() {
 	case "q", "ctrl+c":
+		// In the playlist pane q means queue, matching what it means in the
+		// search overlays, so the key doesn't change meaning depending on
+		// where you are. Quitting from there is Ctrl+C; q still quits from
+		// every other pane.
+		if msg.String() == "q" && m.focus == focusPlaylist {
+			return m.toggleQueueAtCursor()
+		}
 		return m.quit()
 	case "ctrl+r":
 		// Refresh in the queue/playlist view: when a refreshable provider
@@ -800,11 +807,7 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 
 	case "a":
 		if m.focus == focusPlaylist {
-			if !m.playlist.Dequeue(m.plCursor) {
-				m.playlist.Queue(m.plCursor)
-			}
-			m.normalizeQueueOverlay()
-			return m.rearmPreload()
+			return m.toggleQueueAtCursor()
 		}
 
 	case "w":
@@ -819,6 +822,11 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 			m.queue.visible = true
 			m.queue.cursor = 0
 			m.queue.scroll = 0
+		}
+
+	case "c":
+		if m.focus == focusPlaylist {
+			return m.clearPlayNextQueue()
 		}
 
 	case "ctrl+s":

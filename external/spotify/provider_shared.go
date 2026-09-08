@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/bjarneo/cliamp/playlist"
+	"github.com/bjarneo/cliamp/provider"
 )
 
 // maxResponseBody limits JSON API responses to 10 MB.
@@ -50,6 +51,7 @@ type spotifyPlaylistItem struct {
 	} `json:"items"`
 }
 type spotifyArtist struct {
+	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -206,6 +208,14 @@ func trackFromItem(t *spotifyItem) playlist.Track {
 		path = fmt.Sprintf("spotify:track:%s", t.ID) // fallback if uri is absent
 	}
 
+	// Stash the primary artist's ID so ArtistForTrack can jump to that
+	// artist's albums without a lookup. Episodes carry no artists, so they
+	// get no key and resolve to "not an artist track", which is correct.
+	var meta map[string]string
+	if len(t.Artists) > 0 && t.Artists[0].ID != "" {
+		meta = map[string]string{provider.MetaSpotifyArtistID: t.Artists[0].ID}
+	}
+
 	return playlist.Track{
 		Path:         path,
 		Title:        t.Name,
@@ -217,5 +227,6 @@ func trackFromItem(t *spotifyItem) playlist.Track {
 		DurationSecs: t.DurationMs / 1000,
 		TrackNumber:  t.TrackNumber,
 		Unplayable:   (t.IsPlayable != nil && !*t.IsPlayable) || t.Restrictions.Reason != "",
+		ProviderMeta: meta,
 	}
 }

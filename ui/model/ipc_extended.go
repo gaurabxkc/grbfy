@@ -148,7 +148,7 @@ func (m *Model) handleIPCQueue(request ipc.QueueRequestMsg) tea.Cmd {
 		if request.Op == "track.play" {
 			return m.playTrackImmediate(track)
 		}
-		return m.queueTrackNext(track)
+		return m.queueTrackNext(markAutoQueued(track))
 	default:
 		request.Reply <- ipc.Response{OK: false, Error: "unknown queue operation"}
 	}

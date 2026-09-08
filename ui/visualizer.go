@@ -73,6 +73,7 @@ const (
 	VisStereo                     // stereo L/R horizontal LED peak meters
 	VisMirror                     // Braille spectrum bars mirrored about a horizontal axis
 	VisOmarchy                    // dithered pixel field with the Omarchy mark (omarchy.org style)
+	VisLyrics                     // the current synced lyric line, karaoke style
 	VisNone                       // hidden — no visualizer
 	VisCount                      // sentinel for cycling
 )
@@ -246,6 +247,27 @@ type VisTickContext struct {
 	OverlayActive     bool
 	Analyze           func(VisAnalysisSpec) []float64
 	StereoSamplesInto func([][2]float64) int
+	Lyrics            VisLyricsContext
+}
+
+// VisLyricsContext is the lyrics state the Lyrics visualizer draws from,
+// resolved once per tick by the model so the driver itself never reaches
+// into player or lyrics state.
+type VisLyricsContext struct {
+	// Syncable mirrors the model's lyricsSyncable(): whether position-synced
+	// lyrics make sense for this track at all. False for ICY radio, where
+	// position counts from stream-connect rather than song start.
+	Syncable bool
+	// HasLines reports that timestamped lines are loaded for this track.
+	HasLines bool
+	// CurrentLine is the lyric line playing now, NextLine the one after it.
+	// CurrentLine is empty before the first line (an instrumental intro).
+	CurrentLine string
+	NextLine    string
+	// TrackTitle and TrackArtist back the fallback shown whenever there is
+	// no synced line to display.
+	TrackTitle  string
+	TrackArtist string
 }
 
 type VisAnalysisSpec struct {
@@ -499,6 +521,7 @@ var visModes = [VisCount]visEntry{
 	VisStereo:      {"Stereo", newStereoDriver},
 	VisMirror:      {"Mirror", newFastRenderOnlyDriver(spectrumAnalysisSpec(DefaultSpectrumBands), TickAnim, (*Visualizer).renderMirror)},
 	VisOmarchy:     {"Omarchy", newFastRenderOnlyDriver(spectrumAnalysisSpec(DefaultSpectrumBands), TickAnim, (*Visualizer).renderOmarchy)},
+	VisLyrics:      {"Lyrics", newLyricsDriver},
 	VisNone:        {"None", newNoOpDriver},
 }
 

@@ -361,6 +361,10 @@ type Model struct {
 	playingTrack       playlist.Track
 	playingTrackActive bool
 	playbackDetached   bool
+	// consecutiveSkips counts unplayable tracks skipped back-to-back so the
+	// skip chain terminates instead of walking a whole dead queue (see
+	// unavailable.go). Reset whenever a track actually plays.
+	consecutiveSkips int
 
 	notifier playback.Notifier
 

@@ -59,6 +59,10 @@ type StateProvider struct {
 	PlaylistCount func() int
 	CurrentIndex  func() int          // 0-based
 	QueueList     func() []QueueEntry // full playlist in play order
+	// Radio reports an ad-hoc single-track context (played straight from
+	// search) rather than a loaded playlist, so plugins can tell a radio
+	// session from list playback.
+	Radio func() bool
 }
 
 // QueueEntry is one track in the playlist as exposed to plugins via

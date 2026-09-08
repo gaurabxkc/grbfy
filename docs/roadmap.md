@@ -25,20 +25,14 @@ more than the code currently uses: `user-library-modify`,
 `user-follow-modify`. Several items below therefore need only the API call and
 the UI — no re-authentication, no new consent screen.
 
-## Phase 1 — Queue control
+## Phase 1 — Queue control — **DONE**
 
-The Up Next panel is read-only. Spotify's queue is not, and that difference is
-felt constantly.
-
-- Cursor in the Up Next panel, `Enter` to jump straight to a track.
-- `Shift+Up` / `Shift+Down` to reorder, `d` to drop an entry.
-- Show what a change does to the *resolved* order, not just the queue.
-
-**The catch:** upcoming order lives in the playlist's private `order []int`
-(`playlist/playlist.go`), not in the visible track list. `Playlist.Move`
-reorders the *visual* list. Reordering Up Next means rewriting `order`, so it
-needs a new method beside `UpcomingWindow` — with the same rule that the entries
-past a shuffle wrap are not yet decided and cannot be moved.
+Shipped: `Enter` plays the entry, `Shift+Up`/`Shift+Down` reorders, `d`
+removes, all with undo. Reordering a queued entry moves it within the queue;
+reordering one drawn from the resolved order rewrites `order[]` itself, and
+swaps across that boundary are refused rather than silently changing whether a
+track is queued. Removing an order entry removes the track through the same
+path as `x`, so the saved playlist and undo snapshot stay consistent.
 
 ## Phase 2 — Stop lying about Likes
 
@@ -78,9 +72,20 @@ Worth doing only as a deliberate project, not squeezed in.
 - **Spotify's own recommendations / song radio.** `/v1/recommendations` is
   permanently 403 for any app created after 2024-11-27, with no waitlist. The
   working substitute is Last.fm `track.getSimilar` — which the `autoplay.lua`
-  plugin already does.
+  plugin already does. That plugin lives in `~/.config/grbfy/plugins/`, not in
+  this repo's `plugins/`, so grepping the tree for it turns up nothing.
 - **Album art in the terminal.** Tried and removed; see `CLAUDE.md` for why the
   character grid cannot render it well.
+
+## Phase 4 note
+
+Spotify Connect presence was investigated and **dropped**, not deferred:
+go-librespot's own daemon shows the protocol requires a device to stop playing
+when the backend marks another one active (`daemon/player.go`'s
+`stopBeingActive`). Joining Connect would therefore end grbfy's ability to play
+independently while the phone plays something else — which is the whole reason
+it currently stays invisible to Connect. Revisit only if that trade stops
+mattering.
 
 ## Ordering
 

@@ -6,6 +6,12 @@ import "errors"
 // before they can be used.
 var ErrNeedsAuth = errors.New("sign-in required")
 
+// ErrTrackUnavailable is returned when one track cannot be played but the
+// session is fine — region locks, pulled catalogue entries, or a resolved ID
+// the account has no rights to. Callers should skip the track and continue
+// rather than stopping playback or prompting for sign-in.
+var ErrTrackUnavailable = errors.New("track unavailable")
+
 // PlaylistInfo describes a playlist with its name and track count.
 //
 // DurationSecs is optional: providers that can compute it cheaply should

@@ -399,15 +399,7 @@ func (m Model) renderLyricsBody() string {
 			lines = append(lines, dimStyle.Render("  No lyrics loaded. Press r to retry."))
 		}
 	case m.lyricsSyncable() && m.lyricsHaveTimestamps():
-		pos := m.player.Position()
-		activeIdx := -1
-		for i, line := range m.lyrics.lines {
-			if line.Start <= pos {
-				activeIdx = i
-			} else {
-				break
-			}
-		}
+		activeIdx := lyrics.ActiveLineIndex(m.lyrics.lines, m.player.Position())
 		half := visible / 2
 		startIdx := max(activeIdx-half, 0)
 		endIdx := startIdx + visible

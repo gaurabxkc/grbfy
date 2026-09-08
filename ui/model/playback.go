@@ -107,12 +107,13 @@ func (m *Model) playCurrentTrack() tea.Cmd {
 func (m *Model) playTrackImmediate(track playlist.Track) tea.Cmd {
 	m.player.Stop()
 	m.player.ClearPreload()
-	m.playlist.Add(track)
+	// PlayNow, not Add+SetIndex: this is picked from search, outside
+	// whatever playlist is currently loaded, so its remaining tracks must
+	// not resume once this one ends. Anything already queued with q is kept.
+	m.playlist.PlayNow(track)
 	m.loadedPlaylist = ""
 	m.addToHeaderState([]playlist.Track{track})
-	idx := m.playlist.Len() - 1
-	m.playlist.SetIndex(idx)
-	m.plCursor = idx
+	m.plCursor = 0
 	m.adjustScroll()
 	m.status.Showf(statusTTLMedium, "Playing: %s", track.DisplayName())
 	cmd := m.playCurrentTrack()
@@ -384,6 +385,7 @@ func (m *Model) playTrack(track playlist.Track) tea.Cmd {
 		m.buffering = true
 		m.bufferingAt = time.Now()
 		m.err = nil
+		m.noteTrackPlayed()
 		dur := time.Duration(track.DurationSecs) * time.Second
 		if fetchCmd != nil {
 			return tea.Batch(playYTDLStreamCmd(m.player, track.Path, dur, m.requests.stream), fetchCmd)
@@ -397,6 +399,7 @@ func (m *Model) playTrack(track playlist.Track) tea.Cmd {
 		m.buffering = true
 		m.bufferingAt = time.Now()
 		m.err = nil
+		m.noteTrackPlayed()
 		return tea.Batch(playStreamCmd(m.player, track.Path, dur, m.startPosition(track), m.requests.stream), fetchCmd)
 	}
 	if err := m.player.PlayAt(track.Path, dur, m.startPosition(track)()); err != nil {
@@ -406,11 +409,16 @@ func (m *Model) playTrack(track playlist.Track) tea.Cmd {
 		if errors.Is(err, playlist.ErrNeedsAuth) {
 			m.provSignIn = true
 			m.err = nil
+		} else if errors.Is(err, playlist.ErrTrackUnavailable) {
+			// One unplayable track, not a broken session — skip it and
+			// keep going rather than halting the queue with an error.
+			return m.skipUnavailableTrack(track)
 		} else {
 			m.err = err
 		}
 	} else {
 		m.err = nil
+		m.noteTrackPlayed()
 		// yt-dlp streams resume after streamPlayedMsg; local playback reaches
 		// this branch, where applyResume performs the seek synchronously.
 		m.applyResume()

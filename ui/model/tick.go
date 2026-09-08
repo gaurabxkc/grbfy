@@ -69,6 +69,7 @@ func (m *Model) visualizerTickContext(now time.Time) ui.VisTickContext {
 		Playing:       m.visualizerPlaying(),
 		Paused:        m.visualizerPaused(),
 		OverlayActive: m.isOverlayActive(),
+		Lyrics:        m.visualizerLyricsContext(),
 		StereoSamplesInto: func(dst [][2]float64) int {
 			if m.player == nil || m.vis == nil || m.vis.Mode == ui.VisNone {
 				return 0

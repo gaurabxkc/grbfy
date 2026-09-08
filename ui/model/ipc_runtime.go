@@ -255,7 +255,7 @@ func (m *Model) handleV2QueueRequest(jobs *ipc.JobStore, jobID string, request i
 			m.completeV2Job(jobs, jobID, m.v2PlaylistResponse())
 			return cmd
 		}
-		cmd := m.queueTrackNext(track)
+		cmd := m.queueTrackNext(markAutoQueued(track))
 		m.completeV2Job(jobs, jobID, m.v2PlaylistResponse())
 		return cmd
 	}
