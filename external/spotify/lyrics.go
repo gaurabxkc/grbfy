@@ -55,7 +55,7 @@ func (s *Session) trackLyrics(ctx context.Context, trackID string) ([]lyrics.Lin
 	ts := s.tokenSource
 	s.mu.RUnlock()
 	if ts == nil {
-		return nil, fmt.Errorf("spotify: web api token unavailable, run 'cliamp spotify reset' and sign in again: %w", playlist.ErrNeedsAuth)
+		return nil, fmt.Errorf("spotify: web api token unavailable, run 'grbfy spotify reset' and sign in again: %w", playlist.ErrNeedsAuth)
 	}
 	tok, err := ts.Token()
 	if err != nil {
