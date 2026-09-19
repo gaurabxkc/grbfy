@@ -262,7 +262,15 @@ func TestPomodoroRendersCountdown(t *testing.T) {
 	if _, err := mgr.EmitCommand("pomodoro", "start", nil); err != nil {
 		t.Fatalf("start: %v", err)
 	}
-	running := mgr.RenderVis("pomodoro", bands, rows, cols, 1)
+	// RenderVis hands back the previous frame while the plugin is busy, and the
+	// start command can still hold it for a moment, so wait for a fresh one.
+	running := idle
+	for frame, deadline := uint64(1), time.Now().Add(2*time.Second); running == idle && time.Now().Before(deadline); frame++ {
+		running = mgr.RenderVis("pomodoro", bands, rows, cols, frame)
+		if running == idle {
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
 	if running == idle {
 		t.Error("render did not change once the session started")
 	}
@@ -401,5 +409,22 @@ func TestPomodoroClockDoesNotPaintDarkBackgrounds(t *testing.T) {
 	}
 	if !strings.Contains(out, "\x1b[49m") {
 		t.Error("expected the terminal's own background to be restored around strokes")
+	}
+}
+
+// The clock must never be wider than its panel, at any size. The face has a
+// minimum width, so narrow panels fall back to plain text instead.
+func TestPomodoroClockNeverOverflows(t *testing.T) {
+	mgr := loadStudyPlugins(t, map[string]map[string]string{"pomodoro": {"cell_aspect": "2"}}, "pomodoro")
+	var bands [10]float64
+	for rows := 1; rows <= 30; rows++ {
+		for cols := 1; cols <= 120; cols++ {
+			out := mgr.RenderVis("pomodoro", bands, rows, cols, 0)
+			for i, line := range strings.Split(stripClockMarker(out), "\n") {
+				if n := len([]rune(ansiRe.ReplaceAllString(line, ""))); n > cols {
+					t.Fatalf("rows=%d cols=%d: line %d is %d cells wide", rows, cols, i, n)
+				}
+			}
+		}
 	}
 }
