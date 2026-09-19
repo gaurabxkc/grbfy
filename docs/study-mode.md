@@ -43,7 +43,13 @@ fade_seconds = 20
 
 ## Pomodoro
 
-Press <kbd>F</kbd> to start a focus session, and <kbd>F</kbd> again to stop it.
+Press <kbd>H</kbd> to start a focus session, and <kbd>H</kbd> again to stop it.
+While it runs, <kbd>)</kbd> adds 5 minutes to the current phase and <kbd>(</kbd>
+takes 5 off (never below one minute). Only the running phase changes; the next
+one uses its configured length.
+
+The key used to be <kbd>F</kbd>. Upstream cliamp took `F` for its subscribed
+shows overlay, and core keys are reserved from plugins.
 
 Music plays through the work phase and **pauses for breaks**, so the silence is
 what marks the break — no timer to watch. After four rounds the break is a long
@@ -119,11 +125,12 @@ work_minutes = 25
 break_minutes = 5
 long_break_minutes = 15
 rounds_before_long_break = 4
+adjust_minutes = 5          # step for ( and )
 ```
 
 ## Keys
 
-<kbd>W</kbd> and <kbd>F</kbd> are bound at load time and appear in the
+<kbd>W</kbd>, <kbd>H</kbd>, <kbd>(</kbd> and <kbd>)</kbd> are bound at load time and appear in the
 <kbd>Ctrl+K</kbd> keymap under "— plugins —". They work from any list-style
 overlay as well as the main view, because a timer key is about the session
 rather than about whichever list happens to be open; a key the overlay binds

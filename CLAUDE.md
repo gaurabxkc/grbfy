@@ -74,7 +74,7 @@ unreferenced, per rule 4.
    `playlist/reshuffle.go` re-rolls the order on <kbd>Z</kbd> without disturbing the
    current track.
 2. **Study mode** — `plugins/sleep-timer.lua` (<kbd>W</kbd>) and `plugins/pomodoro.lua`
-   (<kbd>F</kbd>). Pure Lua, no Go changes. See `docs/study-mode.md`.
+   (<kbd>H</kbd>, with <kbd>(</kbd> <kbd>)</kbd> to adjust the running phase). Pure Lua, no Go changes. See `docs/study-mode.md`.
 3. **Spotify album art** — `AlbumArtURL` is now populated from the `images` already
    present in every Spotify track object (`external/spotify/provider_shared.go`), so it
    costs no extra request. Upstream only populated it for the `local` and `mixcloud`
@@ -87,7 +87,7 @@ unreferenced, per rule 4.
    browser and `.` still jumps it to the working directory — only keys the overlay
    ignores fall through. A pre-dispatch intercept would need a hand-maintained
    conflict list that rots silently. Text-entry modes are never reached. Plugin
-   keys ride the same fallback, so <kbd>W</kbd> and <kbd>F</kbd> work anywhere.
+   keys ride the same fallback, so <kbd>W</kbd> and <kbd>H</kbd> work anywhere.
 5. **A themed pomodoro clock** — the image clock's colour has to live in the
    pixels: a kitty placeholder cell spends its foreground colour carrying the
    image id, so the terminal cannot tint the digits. `ui/kittyclock.go` therefore

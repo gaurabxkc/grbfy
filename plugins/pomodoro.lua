@@ -1,7 +1,8 @@
 -- pomodoro.lua — Focus sessions that pause the music on breaks, with a big
 -- countdown that replaces the visualizer.
 --
--- Press F to start or stop a session. Music plays through the work phase and
+-- Press H to start or stop a session, ( and ) to take time off or add time to
+-- the running phase. Music plays through the work phase and
 -- pauses for breaks, so the silence marks the break rather than a timer you
 -- have to watch. Press v (or Ctrl+V) to switch the visualizer to "pomodoro"
 -- for a full-width countdown and nothing else.
@@ -17,6 +18,7 @@
 --   break_minutes = 5
 --   long_break_minutes = 15
 --   rounds_before_long_break = 4
+--   adjust_minutes = 5           -- how much ( and ) change the running phase
 
 local p = plugin.register({
     name        = "pomodoro",
@@ -36,6 +38,7 @@ local WORK = cfg("work_minutes", 25)
 local BREAK = cfg("break_minutes", 5)
 local LONG_BREAK = cfg("long_break_minutes", 15)
 local ROUNDS = math.floor(cfg("rounds_before_long_break", 4))
+local ADJUST = cfg("adjust_minutes", 5)
 
 local timer = nil
 local phase = nil       -- "work" | "break", nil when stopped
@@ -66,6 +69,17 @@ end
 
 local start_work, start_break
 
+local function finish_work()
+    round = round + 1
+    grbfy.store.set("completed", total_completed() + 1)
+    start_break()
+end
+
+-- phase_done is what runs when the current phase's countdown reaches zero.
+local function phase_done()
+    if phase == "work" then finish_work() else start_work() end
+end
+
 start_work = function()
     phase = "work"
     phase_total = WORK * 60
@@ -76,11 +90,7 @@ start_work = function()
     grbfy.notify("Pomodoro", string.format("Focus for %g minutes", WORK))
 
     stop_timer()
-    timer = grbfy.timer.after(WORK * 60, function()
-        round = round + 1
-        grbfy.store.set("completed", total_completed() + 1)
-        start_break()
-    end)
+    timer = grbfy.timer.after(WORK * 60, finish_work)
 end
 
 start_break = function()
@@ -100,7 +110,7 @@ start_break = function()
     grbfy.notify("Pomodoro", string.format("%s — %g minutes", label, minutes))
 
     stop_timer()
-    timer = grbfy.timer.after(minutes * 60, start_work)
+    timer = grbfy.timer.after(minutes * 60, phase_done)
 end
 
 local function stop_session(quiet)
@@ -501,12 +511,40 @@ end
 
 -- --------------------------------------------------------------------- keys
 
-local bound, why = p:bind("F", "Pomodoro", function()
+-- adjust moves the end of the running phase by delta_min minutes. Only the
+-- current phase changes; the next one still uses the configured length. The
+-- phase never drops below one minute, so shortening cannot skip it outright.
+local function adjust(delta_min)
+    if not phase then
+        grbfy.message("Pomodoro is off (H starts it)")
+        return
+    end
+    local left = seconds_left() or 0
+    local new_left = math.max(60, left + delta_min * 60)
+    local change = new_left - left
+    phase_ends_at = os.time() + new_left
+    -- Move the total by the same amount, so the progress line keeps what has
+    -- already elapsed rather than jumping.
+    phase_total = phase_total + change
+
+    stop_timer()
+    timer = grbfy.timer.after(new_left, phase_done)
+    grbfy.message(string.format("%s: %d min left", phase == "work" and "Focus" or "Break",
+        math.ceil(new_left / 60)))
+end
+
+local function bind(key, label, fn)
+    local ok, why = p:bind(key, label, fn)
+    if not ok then
+        grbfy.log.warn("could not bind " .. key .. ": " .. tostring(why))
+    end
+end
+
+bind("H", "Pomodoro", function()
     if phase then stop_session(false) else start_work() end
 end)
-if not bound then
-    grbfy.log.warn("could not bind F: " .. tostring(why) .. " (use `grbfy plugins call pomodoro start`)")
-end
+bind(")", "Pomodoro +" .. ADJUST .. "m", function() adjust(ADJUST) end)
+bind("(", "Pomodoro -" .. ADJUST .. "m", function() adjust(-ADJUST) end)
 
 p:command("start", function()
     if phase then return status_text() end

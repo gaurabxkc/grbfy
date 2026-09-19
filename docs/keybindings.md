@@ -42,7 +42,7 @@ Two rules make that safe:
 
 Bare `Left` `Right` are excluded on purpose, because overlays navigate with the
 arrow keys; `Shift+Left` `Shift+Right` seek instead. Plugin keybindings
-(`W`, `F`) are global for the same reason and also work from any overlay.
+(`W`, `H`, `(`, `)`) are global for the same reason and also work from any overlay.
 
 `PgUp` `PgDn` / `Ctrl+U` `Ctrl+D` and `Home` `End` / `g` `G` now work in every
 list too, including the queue, the device picker, the provider browser and the
