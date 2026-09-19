@@ -547,7 +547,7 @@ func (p *SpotifyProvider) fetchTracksPage(ctx context.Context, playlistID string
 	if playlistID != savedTracksPlaylistID {
 		// artists(id,name), not artists(name): the id feeds
 		// ArtistForTrack so a playlist track can jump to its artist.
-		query.Set("fields", "items(item(id,name,type,uri,artists(id,name),album(name,release_date),show(name),release_date,duration_ms,track_number,is_playable,restrictions(reason))),total")
+		query.Set("fields", "items(item(id,name,type,uri,artists(id,name),album(name,release_date,images),show(name,images),images,release_date,duration_ms,track_number,is_playable,restrictions(reason))),total")
 		path = fmt.Sprintf("/v1/playlists/%s/items", playlistID)
 	}
 	resp, err := p.webAPI(ctx, "GET", path, query)
