@@ -14,11 +14,11 @@
 -- Durations are configurable in config.toml:
 --
 --   [plugins.pomodoro]
---   work_minutes = 25
+--   work_minutes = 90
 --   break_minutes = 5
 --   long_break_minutes = 15
 --   rounds_before_long_break = 4
---   adjust_minutes = 5           -- how much ( and ) change the running phase
+--   adjust_minutes = 1           -- how much ( and ) change the running phase
 
 local p = plugin.register({
     name        = "pomodoro",
@@ -34,11 +34,11 @@ local function cfg(key, fallback)
     return v
 end
 
-local WORK = cfg("work_minutes", 25)
+local WORK = cfg("work_minutes", 90)
 local BREAK = cfg("break_minutes", 5)
 local LONG_BREAK = cfg("long_break_minutes", 15)
 local ROUNDS = math.floor(cfg("rounds_before_long_break", 4))
-local ADJUST = cfg("adjust_minutes", 5)
+local ADJUST = cfg("adjust_minutes", 1)
 
 local timer = nil
 local phase = nil       -- "work" | "break", nil when stopped
