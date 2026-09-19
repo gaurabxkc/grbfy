@@ -439,6 +439,7 @@ func TransmitClockGlyphs(w io.Writer) {
 	case done := <-tintEncoded:
 		tintBuilding = color.RGBA{}
 		_, _ = w.Write(done.data)
+		forgetPlacements()
 		sentTint = done.tint
 	default:
 	}
@@ -456,6 +457,7 @@ func TransmitClockGlyphs(w io.Writer) {
 		// Nothing on screen yet: an async first send would leave the clock
 		// blank for a frame, which on a one-second clock reads as a fault.
 		_, _ = w.Write(encodeClockGlyphs(cachedMasks, want))
+		forgetPlacements()
 		sentTint = want
 		return
 	}
@@ -489,6 +491,17 @@ var (
 	// placementOut is the terminal; overridden in tests.
 	placementOut io.Writer = os.Stdout
 )
+
+// forgetPlacements drops the record of what is placed. Every glyph send starts
+// by deleting the old images, and deleting an image also deletes its
+// placements, so after a send nothing is placed any more. Without this a theme
+// change re-sent the glyphs and ensurePlacement, believing them still placed,
+// never placed them again: the clock went blank until restart.
+func forgetPlacements() {
+	placementMu.Lock()
+	defer placementMu.Unlock()
+	clear(placementSize)
+}
 
 // ensurePlacement creates the virtual placement mapping an image onto a cell
 // box of the given size.

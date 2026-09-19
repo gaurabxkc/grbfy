@@ -548,3 +548,33 @@ func TestClockGlyphsAreResentOnThemeChange(t *testing.T) {
 		t.Error("re-send carried no image data")
 	}
 }
+
+// A theme change re-sends the glyphs, and every send deletes the old images,
+// placements included. The digits must be placed again afterwards, or the
+// clock goes blank after the first theme switch.
+func TestThemeChangeReplacesPlacements(t *testing.T) {
+	t.Setenv("GRBFY_CLOCK_GRAPHICS", "1")
+	resetTransmit(t)
+	out := capturePlacements(t)
+
+	ExpandImageClock("\x0005:23\x00fallback", 12, 120)
+	if !strings.Contains(out.String(), "a=p") {
+		t.Fatal("no placements on the first render")
+	}
+
+	SetClockTint(color.RGBA{0x7a, 0xa2, 0xf7, 255}) // a theme's accent
+	out.Reset()
+	deadline := time.Now().Add(5 * time.Second)
+	for !strings.Contains(out.String(), "a=d") && time.Now().Before(deadline) {
+		ExpandImageClock("\x0005:24\x00fallback", 12, 120) // collects the async re-tint
+		time.Sleep(10 * time.Millisecond)
+	}
+	sent := out.String()
+	del := strings.LastIndex(sent, "a=d")
+	if del < 0 {
+		t.Fatal("the re-tinted glyphs were never sent")
+	}
+	if !strings.Contains(sent[del:], "a=p") {
+		t.Error("glyphs were re-sent (deleting their placements) but not placed again")
+	}
+}
