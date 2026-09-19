@@ -23,6 +23,8 @@ func loadStudyPlugins(t *testing.T, cfg map[string]map[string]string, names ...s
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("GRBFY_CONFIG_DIR", "")
+	t.Setenv("CLIAMP_CONFIG_DIR", "")
+	t.Setenv("XDG_CONFIG_HOME", "") // appdir checks both before HOME
 	pluginDir := filepath.Join(home, ".config", "grbfy", "plugins")
 	if err := os.MkdirAll(pluginDir, 0o755); err != nil {
 		t.Fatalf("mkdir plugin dir: %v", err)
