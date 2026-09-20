@@ -75,6 +75,7 @@ const (
 	VisOmarchy                    // dithered pixel field with the Omarchy mark (omarchy.org style)
 	VisRedSector                  // tumbling wireframe equalizer over a drifting starfield
 	VisLyrics                     // the current synced lyric line, karaoke style
+	VisCover                      // the playing track's album art, as a real image
 	VisNone                       // hidden — no visualizer
 	VisCount                      // sentinel for cycling
 )
@@ -247,6 +248,7 @@ type VisTickContext struct {
 	Analyze           func(VisAnalysisSpec) []float64
 	StereoSamplesInto func([][2]float64) int
 	Lyrics            VisLyricsContext
+	Cover             VisCoverContext
 }
 
 // VisLyricsContext is the lyrics state the Lyrics visualizer draws from,
@@ -522,6 +524,7 @@ var visModes = [VisCount]visEntry{
 	VisOmarchy:     {"Omarchy", newFastRenderOnlyDriver(spectrumAnalysisSpec(DefaultSpectrumBands), TickAnim, (*Visualizer).renderOmarchy)},
 	VisRedSector:   {"RedSector", newRedSectorDriver},
 	VisLyrics:      {"Lyrics", newLyricsDriver},
+	VisCover:       {"Cover", newCoverDriver},
 	VisNone:        {"None", newNoOpDriver},
 }
 
