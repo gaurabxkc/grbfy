@@ -480,3 +480,100 @@ func TestPlacementsAreReissuedAfterAWhile(t *testing.T) {
 		t.Error("the placement was never re-issued")
 	}
 }
+
+// The now-playing screen: art, details, a progress bar and what plays next.
+func TestCoverModeNowPlayingScreen(t *testing.T) {
+	t.Setenv("GRBFY_CLOCK_GRAPHICS", "1")
+	t.Setenv("GRBFY_COVER_CELL_ASPECT", "2")
+	coverAspectFixed, coverCellAspect = true, 2
+	t.Cleanup(func() { coverAspectFixed = false })
+	resetCover(t)
+	t.Cleanup(SetGraphicsOutput(io.Discard))
+
+	SetCoverArt(serveCover(t, 640, 640))
+	waitForCover(t)
+
+	defer WithPanelWidth(74)()
+	d := &coverDriver{ctx: VisCoverContext{
+		TrackTitle: "Kerala", TrackArtist: "Bonobo", AlbumLine: "Migration · 2017",
+		PositionSecs: 72, DurationSecs: 225, NextLine: "Outlier — Bonobo",
+	}}
+	out := d.Render(&Visualizer{Rows: 12})
+	plain := ansiRe.ReplaceAllString(out, "")
+
+	for _, want := range []string{"Kerala", "Bonobo", "Migration · 2017", "1:12", "3:45", "next · Outlier — Bonobo"} {
+		if !strings.Contains(plain, want) {
+			t.Errorf("%q is missing from the screen", want)
+		}
+	}
+	if !strings.Contains(plain, coverBarFill) || !strings.Contains(plain, coverBarEmpty) {
+		t.Error("the progress bar is missing its filled or empty part")
+	}
+	// A third of the way in: the filled part must be shorter than the rest.
+	filled := strings.Count(plain, coverBarFill)
+	empty := strings.Count(plain, coverBarEmpty)
+	if filled == 0 || filled >= empty {
+		t.Errorf("bar shows %d filled vs %d empty for 72s of 225s", filled, empty)
+	}
+	if lines := strings.Split(out, "\n"); len(lines) != 12 {
+		t.Errorf("screen has %d lines, want 12", len(lines))
+	}
+	for i, line := range strings.Split(out, "\n") {
+		if n := cellWidth(ansiRe.ReplaceAllString(line, "")); n > PanelWidth {
+			t.Errorf("line %d is %d cells wide, want <= %d", i, n, PanelWidth)
+		}
+	}
+}
+
+// A live stream has no duration, so a bar would be a lie.
+func TestCoverModeLiveStreamHasNoBar(t *testing.T) {
+	t.Setenv("GRBFY_CLOCK_GRAPHICS", "1")
+	t.Setenv("GRBFY_COVER_CELL_ASPECT", "2")
+	coverAspectFixed, coverCellAspect = true, 2
+	t.Cleanup(func() { coverAspectFixed = false })
+	resetCover(t)
+	t.Cleanup(SetGraphicsOutput(io.Discard))
+
+	SetCoverArt(serveCover(t, 640, 640))
+	waitForCover(t)
+
+	defer WithPanelWidth(74)()
+	d := &coverDriver{ctx: VisCoverContext{TrackTitle: "Radio", DurationSecs: 0, PositionSecs: 900}}
+	plain := ansiRe.ReplaceAllString(d.Render(&Visualizer{Rows: 12}), "")
+	if strings.Contains(plain, coverBarFill) {
+		t.Error("drew a progress bar for a stream with no duration")
+	}
+}
+
+// The accent is the cover's own colour, not an average of everything in it.
+func TestCoverAccentPicksTheDominantColour(t *testing.T) {
+	// Three quarters dark grey, one quarter strong teal: the teal wins.
+	img := image.NewRGBA(image.Rect(0, 0, 100, 100))
+	for y := range 100 {
+		for x := range 100 {
+			c := color.RGBA{0x20, 0x20, 0x20, 0xFF}
+			if x >= 50 && y >= 50 {
+				c = color.RGBA{0x14, 0x8F, 0x96, 0xFF}
+			}
+			img.Set(x, y, c)
+		}
+	}
+	got, ok := coverAccent(img)
+	if !ok {
+		t.Fatal("no accent found in a cover with an obvious colour")
+	}
+	if got.B < got.R || got.G < got.R {
+		t.Errorf("accent %v is not the teal in the artwork", got)
+	}
+
+	// A greyscale sleeve has no accent worth using.
+	grey := image.NewRGBA(image.Rect(0, 0, 40, 40))
+	for y := range 40 {
+		for x := range 40 {
+			grey.Set(x, y, color.RGBA{0x80, 0x80, 0x80, 0xFF})
+		}
+	}
+	if _, ok := coverAccent(grey); ok {
+		t.Error("found an accent in a greyscale cover")
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"image"
+	"image/color"
 	_ "image/jpeg"
 	"image/png"
 	"io"
@@ -89,8 +90,10 @@ var (
 	// coverURL is what the model last asked for; coverImg is the decoded
 	// picture for it, nil until the fetch lands. coverSentURL is what the
 	// terminal currently holds under coverImageID.
-	coverURL string
-	coverImg image.Image
+	coverURL    string
+	coverImg    image.Image
+	coverTint   color.RGBA
+	coverTinted bool
 	// coverFetching is the URL a fetch is in flight for, so a second request
 	// for it does not start another.
 	coverFetching string
@@ -118,6 +121,7 @@ func SetCoverArt(url string) {
 	}
 	coverURL = url
 	coverImg = coverCache[url]
+	coverTint, coverTinted = coverAccent(coverImg)
 	if url == "" || coverImg != nil || coverFetching == url {
 		return
 	}
@@ -178,6 +182,9 @@ func fetchCover(url string) {
 	coverMu.Lock()
 	defer coverMu.Unlock()
 	cacheCoverLocked(url, img)
+	if coverURL == url {
+		coverTint, coverTinted = coverAccent(img)
+	}
 	if coverFetching == url {
 		coverFetching = ""
 	}
@@ -308,6 +315,14 @@ func coverRows(id, rows, cols, boxRows, boxCols int) []string {
 		out = append(out, "")
 	}
 	return out[:rows]
+}
+
+// CoverAccent is the playing artwork's accent colour, or false when there is
+// no artwork or it has no colour worth using.
+func CoverAccent() (color.RGBA, bool) {
+	coverMu.Lock()
+	defer coverMu.Unlock()
+	return coverTint, coverTinted
 }
 
 // CoverRowsFor reports how many rows the artwork needs at the given width,

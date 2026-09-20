@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -25,8 +26,11 @@ func (d *coverDriver) Tick(_ *Visualizer, ctx VisTickContext) {
 	SetCoverArt(ctx.Cover.ArtURL)
 }
 
-// A cover changes only with the track, so there is nothing to animate.
-func (*coverDriver) TickInterval(*Visualizer, VisTickContext) time.Duration { return TickSlow }
+// Nothing animates, but the progress bar has to move: a second is the
+// coarsest tick that still keeps the elapsed time honest.
+func (*coverDriver) TickInterval(*Visualizer, VisTickContext) time.Duration {
+	return time.Second
+}
 
 func (*coverDriver) OnEnter(*Visualizer) {}
 func (*coverDriver) OnLeave(*Visualizer) {}
@@ -50,10 +54,34 @@ const coverDetailsMinWidth = 18
 // coverGutter separates the art from the text.
 const coverGutter = "  "
 
-// renderWithDetails draws the cover on the left and the track's details
-// beside it, the pair centred in the panel.
+// The progress bar's glyphs match the player's own seek bar.
+const (
+	coverBarFill     = "━"
+	coverBarHead     = "╸"
+	coverBarEmpty    = "─"
+	coverBarMinWidth = 8
+)
+
+var (
+	coverBarFillStyle  = lipgloss.NewStyle()
+	coverBarEmptyStyle = lipgloss.NewStyle().Faint(true)
+	coverNextStyle     = lipgloss.NewStyle().Faint(true)
+)
+
+// renderWithDetails is the now-playing screen: the cover on the left, the
+// track's details beside it, and what plays next underneath.
 func (d *coverDriver) renderWithDetails(v *Visualizer) (string, bool) {
-	art, artWidth, ok := RenderCoverBlock(v.Rows)
+	// The next-track line gets its own row below the art when there is one to
+	// spare, so it reads as a footnote rather than part of the block.
+	artRows := v.Rows
+	next := d.nextLine()
+	if next != "" && artRows >= coverNextMinRows {
+		artRows--
+	} else {
+		next = ""
+	}
+
+	art, artWidth, ok := RenderCoverBlock(artRows)
 	if !ok {
 		return "", false
 	}
@@ -68,21 +96,33 @@ func (d *coverDriver) renderWithDetails(v *Visualizer) (string, bool) {
 
 	// The text block sits centred against the art rather than at its top.
 	top := max(0, (len(art)-len(details))/2)
-	out := make([]string, len(art))
+	out := make([]string, 0, v.Rows)
 	for i, row := range art {
 		line := lead + row
 		if i >= top && i-top < len(details) {
 			line += coverGutter + details[i-top]
 		}
-		out[i] = line
+		out = append(out, line)
 	}
-	return strings.Join(out, "\n"), true
+	if next != "" {
+		out = append(out, centerInPanel(coverNextStyle.Render(ansi.Truncate(next, PanelWidth, "…"))))
+	}
+	for len(out) < v.Rows {
+		out = append(out, "")
+	}
+	return strings.Join(out[:v.Rows], "\n"), true
 }
 
-// details is the track's text beside the art: what it is, then where it comes
-// from. Empty fields are dropped rather than leaving blank rows.
+// coverNextMinRows is the height below which the next-track line costs more
+// than it is worth: the row comes out of the picture.
+const coverNextMinRows = 7
+
+// details is what sits beside the art: the track, then where it comes from,
+// then how far through it is. Empty fields are dropped rather than leaving
+// blank rows, and the progress bar only appears when it has room and a
+// duration to work from.
 func (d *coverDriver) details(width int) []string {
-	lines := make([]string, 0, 3)
+	lines := make([]string, 0, 5)
 	add := func(style lipgloss.Style, text string) {
 		if text == "" {
 			return
@@ -92,7 +132,68 @@ func (d *coverDriver) details(width int) []string {
 	add(lyricsCurrentStyle, d.ctx.TrackTitle)
 	add(lyricsNextStyle, d.ctx.TrackArtist)
 	add(lyricsNextStyle, d.ctx.AlbumLine)
+
+	if bar := d.progressLine(width); bar != "" {
+		lines = append(lines, "", bar)
+	}
 	return lines
+}
+
+// nextLine is the "next · Outlier — Bonobo" footnote, empty when nothing
+// follows this track.
+func (d *coverDriver) nextLine() string {
+	if d.ctx.NextLine == "" {
+		return ""
+	}
+	return "next · " + d.ctx.NextLine
+}
+
+// progressLine is "01:12 ━━━━━╸───── 03:45", tinted with the cover's own
+// accent colour so the screen belongs to the record playing. It is dropped
+// for live streams and anything with no known duration, where a bar would be
+// a lie, and in columns too narrow to show one.
+func (d *coverDriver) progressLine(width int) string {
+	if d.ctx.DurationSecs <= 0 {
+		return ""
+	}
+	elapsed := formatCoverTime(d.ctx.PositionSecs)
+	total := formatCoverTime(d.ctx.DurationSecs)
+	barWidth := width - lipgloss.Width(elapsed) - lipgloss.Width(total) - 2
+	if barWidth < coverBarMinWidth {
+		return ""
+	}
+
+	progress := max(0, min(1, float64(d.ctx.PositionSecs)/float64(d.ctx.DurationSecs)))
+	filled := min(int(progress*float64(barWidth)), barWidth)
+
+	fill := coverBarFillStyle
+	if tint, ok := CoverAccent(); ok {
+		fill = fill.Foreground(tint)
+	}
+
+	var b strings.Builder
+	b.WriteString(lyricsNextStyle.Render(elapsed))
+	b.WriteString(" ")
+	if filled >= barWidth {
+		b.WriteString(fill.Render(strings.Repeat(coverBarFill, barWidth)))
+	} else {
+		b.WriteString(fill.Render(strings.Repeat(coverBarFill, filled) + coverBarHead))
+		b.WriteString(coverBarEmptyStyle.Render(strings.Repeat(coverBarEmpty, barWidth-filled-1)))
+	}
+	b.WriteString(" ")
+	b.WriteString(lyricsNextStyle.Render(total))
+	return b.String()
+}
+
+// formatCoverTime renders seconds as m:ss, or h:mm:ss past an hour.
+func formatCoverTime(secs int) string {
+	if secs < 0 {
+		secs = 0
+	}
+	if h := secs / 3600; h > 0 {
+		return fmt.Sprintf("%d:%02d:%02d", h, (secs%3600)/60, secs%60)
+	}
+	return fmt.Sprintf("%d:%02d", secs/60, secs%60)
 }
 
 // longestWidth is the visible width of the widest line.
@@ -112,6 +213,12 @@ type VisCoverContext struct {
 	ArtURL      string
 	TrackTitle  string
 	TrackArtist string
+	// PositionSecs and DurationSecs drive the progress bar. A zero duration
+	// (a live stream) means no bar rather than an empty one.
+	PositionSecs int
+	DurationSecs int
+	// NextLine is what plays next, already formatted by the model.
+	NextLine string
 	// AlbumLine is the album with its year when there is one, already
 	// formatted by the model: the driver does no field assembly.
 	AlbumLine string

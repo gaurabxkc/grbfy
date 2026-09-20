@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 
+	"github.com/bjarneo/cliamp/playlist"
 	"github.com/bjarneo/cliamp/provider"
 	"github.com/bjarneo/cliamp/ui"
 )
@@ -26,9 +27,38 @@ func (m *Model) visualizerCoverContext() ui.VisCoverContext {
 		album = fmt.Sprintf("%s · %d", album, track.Year)
 	}
 	return ui.VisCoverContext{
-		ArtURL:      art,
-		TrackTitle:  track.Title,
-		TrackArtist: track.Artist,
-		AlbumLine:   album,
+		ArtURL:       art,
+		TrackTitle:   track.Title,
+		TrackArtist:  track.Artist,
+		AlbumLine:    album,
+		PositionSecs: int(m.cachedPos.Seconds()),
+		DurationSecs: coverDuration(m, track),
+		NextLine:     m.coverNextLine(),
 	}
+}
+
+// coverDuration is the playing track's length. A live stream reports none,
+// and the cached duration is preferred because it follows the player rather
+// than the playlist's metadata.
+func coverDuration(m *Model, track playlist.Track) int {
+	if m.currentPlaybackIsLive(track) {
+		return 0
+	}
+	if secs := int(m.cachedDur.Seconds()); secs > 0 {
+		return secs
+	}
+	return track.DurationSecs
+}
+
+// coverNextLine names what plays after this track, resolved the same way Up
+// Next resolves it, so the screen agrees with the U overlay.
+func (m *Model) coverNextLine() string {
+	if m.playlist == nil {
+		return ""
+	}
+	entries, _ := m.playlist.UpcomingWindow(1)
+	if len(entries) == 0 {
+		return ""
+	}
+	return trackViewName(entries[0].Track)
 }
