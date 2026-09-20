@@ -78,6 +78,12 @@ func refreshCoverCellAspect() {
 	}
 }
 
+// coverState is one image id's contents.
+type coverState struct {
+	url        string
+	cols, rows int
+}
+
 var (
 	coverMu sync.Mutex
 	// coverURL is what the model last asked for; coverImg is the decoded
@@ -86,8 +92,10 @@ var (
 	coverURL     string
 	coverImg     image.Image
 	coverFetched string
-	// coverSent is the artwork each image id currently holds.
-	coverSent = map[int]string{}
+	// coverSent is what each image id currently holds: the artwork's URL and
+	// the cell box it was scaled for. A different box needs a fresh scale, or
+	// the terminal fits the picture itself and rounds each row as it goes.
+	coverSent = map[int]coverState{}
 
 	coverClient = &http.Client{Timeout: coverFetchTimeout}
 )
@@ -154,7 +162,9 @@ func shrinkCover(src image.Image) image.Image {
 // transmitCover sends the current cover under coverImageID, replacing whatever
 // was there. Deleting first also drops the old image's placements, so the
 // caller must place it again afterwards (the clock learned this the hard way).
-func transmitCover(w io.Writer, img image.Image, url string, id int) bool {
+func transmitCover(w io.Writer, img image.Image, url string, id, cols, rows int) bool {
+	img = fitToCellBox(img, cols, rows)
+
 	var enc bytes.Buffer
 	if err := (&png.Encoder{CompressionLevel: png.BestSpeed}).Encode(&enc, img); err != nil {
 		return false
@@ -180,8 +190,35 @@ func transmitCover(w io.Writer, img image.Image, url string, id int) bool {
 		return false
 	}
 	forgetPlacements(id)
-	coverSent[id] = url
+	coverSent[id] = coverState{url: url, cols: cols, rows: rows}
 	return true
+}
+
+// fitToCellBox scales the artwork to exactly the pixels the cell box covers,
+// so the terminal has no fitting left to do. Leaving that to the terminal is
+// what leaves a picture letterboxed inside its box, and rounds rows against a
+// fractional scale, which shows as part of the image sitting a column off.
+//
+// The box is chosen to match the picture's proportions to within a cell, so
+// this stretch is under half a cell and invisible; without the terminal's cell
+// size there is nothing to scale to, and the image is sent as it is.
+func fitToCellBox(src image.Image, cols, rows int) image.Image {
+	cellW, cellH, ok := terminalCellPixels()
+	if !ok || cols <= 0 || rows <= 0 {
+		return src
+	}
+	w := int(float64(cols)*cellW + 0.5)
+	h := int(float64(rows)*cellH + 0.5)
+	if w <= 0 || h <= 0 || w > 4096 || h > 4096 {
+		return src
+	}
+	b := src.Bounds()
+	if b.Dx() == w && b.Dy() == h {
+		return src
+	}
+	dst := image.NewRGBA(image.Rect(0, 0, w, h))
+	draw.CatmullRom.Scale(dst, dst.Bounds(), src, b, draw.Src, nil)
+	return dst
 }
 
 // coverBox returns the cell box a square-ish cover should occupy inside the
@@ -273,9 +310,9 @@ func RenderCoverBlock(rows int) (lines []string, width int, ok bool) {
 		return nil, 0, false
 	}
 
-	if sent != url {
+	if (sent != coverState{url: url, cols: boxCols, rows: boxRows}) {
 		coverMu.Lock()
-		written := transmitCover(placementOut, img, url, coverBlockImageID)
+		written := transmitCover(placementOut, img, url, coverBlockImageID, boxCols, boxRows)
 		coverMu.Unlock()
 		if !written {
 			return nil, 0, false
@@ -307,9 +344,9 @@ func RenderCover(rows, cols int) (string, bool) {
 		return "", false
 	}
 
-	if sent != url {
+	if (sent != coverState{url: url, cols: boxCols, rows: boxRows}) {
 		coverMu.Lock()
-		ok := transmitCover(placementOut, img, url, coverImageID)
+		ok := transmitCover(placementOut, img, url, coverImageID, boxCols, boxRows)
 		coverMu.Unlock()
 		if !ok {
 			return "", false

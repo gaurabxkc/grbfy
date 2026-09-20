@@ -332,3 +332,49 @@ func placeholderID(t *testing.T, render string) int {
 	}
 	return id
 }
+
+// The image is scaled to the box before it is sent, so the terminal has no
+// fitting of its own to do. A different box means a fresh scale.
+func TestCoverRescalesWhenTheBoxChanges(t *testing.T) {
+	t.Setenv("GRBFY_CLOCK_GRAPHICS", "1")
+	resetCover(t)
+	out := capturePlacements(t)
+
+	SetCoverArt(serveCover(t, 640, 640))
+	waitForCover(t)
+
+	if _, ok := RenderCover(10, 26); !ok {
+		t.Fatal("cover did not draw")
+	}
+	out.Reset()
+	if _, ok := RenderCover(10, 26); !ok {
+		t.Fatal("cover did not draw")
+	}
+	if resent := out.String(); resent != "" {
+		t.Errorf("same box re-sent the image: %q", resent)
+	}
+
+	// A resize changes the box, which has to be re-scaled and re-placed.
+	out.Reset()
+	if _, ok := RenderCover(6, 26); !ok {
+		t.Fatal("cover did not draw after the resize")
+	}
+	sent := out.String()
+	if !strings.Contains(sent, "a=t") {
+		t.Error("a smaller box did not re-send the image")
+	}
+	if !strings.Contains(sent, "a=p") {
+		t.Error("a smaller box did not place the image again")
+	}
+}
+
+// Without the terminal's cell size there is nothing to scale to, and the
+// artwork must still be sent as it is rather than dropped.
+func TestFitToCellBoxWithoutCellSize(t *testing.T) {
+	src := image.NewRGBA(image.Rect(0, 0, 300, 300))
+	if got := fitToCellBox(src, 20, 10); got != image.Image(src) {
+		// Tests do not run on a terminal, so terminalCellPixels reports
+		// nothing and the picture comes back untouched.
+		t.Errorf("image was altered without a known cell size: %v", got.Bounds())
+	}
+}
