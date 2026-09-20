@@ -109,7 +109,7 @@ func TestCoverBoxKeepsProportions(t *testing.T) {
 	square := image.NewRGBA(image.Rect(0, 0, 300, 300))
 
 	rows, cols := coverBox(square, 10, 80)
-	if want := int(float64(rows)*clockCellAspect + 0.5); cols != want {
+	if want := int(float64(rows)*coverCellAspect + 0.5); cols != want {
 		t.Errorf("box is %dx%d cells; a square needs %d columns for %d rows", cols, rows, want, rows)
 	}
 

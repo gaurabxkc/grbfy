@@ -1,6 +1,9 @@
 package model
 
-import "github.com/bjarneo/cliamp/ui"
+import (
+	"github.com/bjarneo/cliamp/provider"
+	"github.com/bjarneo/cliamp/ui"
+)
 
 // visualizerCoverContext resolves the artwork for the Cover visualizer. It is
 // the only place that couples the visualizer to playlist state; the driver
@@ -10,8 +13,14 @@ func (m *Model) visualizerCoverContext() ui.VisCoverContext {
 	if idx < 0 {
 		return ui.VisCoverContext{}
 	}
+	// The large artwork when the provider carries one: AlbumArtURL is a
+	// thumbnail, and a cover at panel size wants the full-resolution image.
+	art := track.AlbumArtURL
+	if large := track.Meta(provider.MetaAlbumArtLarge); large != "" {
+		art = large
+	}
 	return ui.VisCoverContext{
-		ArtURL:      track.AlbumArtURL,
+		ArtURL:      art,
 		TrackTitle:  track.Title,
 		TrackArtist: track.Artist,
 	}

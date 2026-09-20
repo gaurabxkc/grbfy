@@ -95,6 +95,18 @@ type spotifyItem struct {
 	} `json:"restrictions"`
 }
 
+// pickLargestImage returns the biggest artwork on offer, for drawing a cover
+// at panel size rather than as a thumbnail.
+func pickLargestImage(images []spotifyImage) string {
+	best, bestW := "", -1
+	for _, img := range images {
+		if img.URL != "" && img.Width > bestW {
+			best, bestW = img.URL, img.Width
+		}
+	}
+	return best
+}
+
 // spotifyImage is one cover-art size from the Spotify Web API. Track objects
 // already carry these, so album art costs no extra request.
 type spotifyImage struct {
@@ -190,11 +202,15 @@ func trackFromItem(t *spotifyItem) playlist.Track {
 	artist := strings.Join(artists, ", ")
 	album := t.Album.Name
 	art := pickCoverImage(t.Album.Images)
+	large := pickLargestImage(t.Album.Images)
 	if t.Type == "episode" {
 		artist = t.Show.Name
 		album = t.Show.Name
 		if art = pickCoverImage(t.Images); art == "" {
 			art = pickCoverImage(t.Show.Images)
+			large = pickLargestImage(t.Show.Images)
+		} else {
+			large = pickLargestImage(t.Images)
 		}
 	}
 
@@ -217,9 +233,16 @@ func trackFromItem(t *spotifyItem) playlist.Track {
 	// Stash the primary artist's ID so ArtistForTrack can jump to that
 	// artist's albums without a lookup. Episodes carry no artists, so they
 	// get no key and resolve to "not an artist track", which is correct.
-	var meta map[string]string
+	meta := map[string]string{}
 	if len(t.Artists) > 0 && t.Artists[0].ID != "" {
-		meta = map[string]string{provider.MetaSpotifyArtistID: t.Artists[0].ID}
+		meta[provider.MetaSpotifyArtistID] = t.Artists[0].ID
+	}
+	// Only worth carrying when it beats the thumbnail.
+	if large != "" && large != art {
+		meta[provider.MetaAlbumArtLarge] = large
+	}
+	if len(meta) == 0 {
+		meta = nil
 	}
 
 	return playlist.Track{

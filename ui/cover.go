@@ -9,6 +9,8 @@ import (
 	"image/png"
 	"io"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +39,19 @@ const (
 
 	coverFetchTimeout = 10 * time.Second
 )
+
+// coverCellAspect is the terminal's cell height divided by its width, used to
+// keep a cover from coming out stretched. Deliberately separate from the
+// clock's cell_aspect: that one is tuned by eye for the size of the digits,
+// while a photograph has to keep its real proportions. Most terminals are
+// close to 2; GRBFY_COVER_CELL_ASPECT overrides it.
+var coverCellAspect = 2.0
+
+func init() {
+	if v, err := strconv.ParseFloat(os.Getenv("GRBFY_COVER_CELL_ASPECT"), 64); err == nil && v >= 1 && v <= 5 {
+		coverCellAspect = v
+	}
+}
 
 var (
 	coverMu sync.Mutex
@@ -144,7 +159,7 @@ func transmitCover(w io.Writer, img image.Image, url string) bool {
 }
 
 // coverBox returns the cell box a square-ish cover should occupy inside the
-// panel, keeping the picture's proportions: cells are about clockCellAspect
+// panel, keeping the picture's proportions: cells are about coverCellAspect
 // times taller than they are wide, so a square needs that many more columns
 // than rows.
 func coverBox(img image.Image, rows, cols int) (boxRows, boxCols int) {
@@ -152,7 +167,7 @@ func coverBox(img image.Image, rows, cols int) (boxRows, boxCols int) {
 	if b.Dx() <= 0 || b.Dy() <= 0 || rows <= 0 || cols <= 0 {
 		return 0, 0
 	}
-	ratio := float64(b.Dx()) / float64(b.Dy()) * clockCellAspect
+	ratio := float64(b.Dx()) / float64(b.Dy()) * coverCellAspect
 	boxRows = rows
 	boxCols = int(float64(boxRows)*ratio + 0.5)
 	if boxCols > cols {

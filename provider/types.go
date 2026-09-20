@@ -72,6 +72,12 @@ const (
 	// (first-listed) artist, stashed when the track is parsed so
 	// SpotifyProvider.ArtistForTrack can resolve it without a second request.
 	MetaSpotifyArtistID = "spotify.artist_id"
+
+	// MetaAlbumArtLarge is the biggest artwork a provider offers for a
+	// track. AlbumArtURL stays a thumbnail, which is all a notification or a
+	// media-control widget needs; a cover filling the panel needs the large
+	// one, and scaling the thumbnail up is visibly soft.
+	MetaAlbumArtLarge = "art.large"
 	// MetaMixcloudCreator is the profile username that owns a Mixcloud show.
 	MetaMixcloudCreator = "mixcloud.creator"
 	// MetaMixcloudExclusive marks a show that Mixcloud may restrict to
