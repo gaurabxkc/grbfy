@@ -206,6 +206,23 @@ func coverRows(rows, cols, boxRows, boxCols int) []string {
 	return out[:rows]
 }
 
+// CoverRowsFor reports how many rows the artwork needs at the given width,
+// keeping its proportions, or 0 when there is nothing to draw. Callers size a
+// region with this before asking for the render.
+func CoverRowsFor(cols int) int {
+	if !ClockGraphicsAvailable() || cols < 2 {
+		return 0
+	}
+	coverMu.Lock()
+	img := coverImg
+	coverMu.Unlock()
+	if img == nil {
+		return 0
+	}
+	rows, _ := coverBox(img, len(rowColumnDiacritics), cols)
+	return rows
+}
+
 // RenderCover draws the current album art, or reports false when there is
 // nothing to draw: no artwork, not fetched yet, or a terminal without the
 // graphics protocol. The caller then falls back to text.

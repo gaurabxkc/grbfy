@@ -185,10 +185,19 @@ unreferenced, per rule 4.
     switch. `c` clears the play-next queue from the main view for the times
     you want it gone anyway.
 
-### Album art in the TUI was tried and removed
+4. **Album art, for real** — `ui/cover.go` draws the playing track's cover as an
+   image through the kitty graphics protocol, reusing the transmit/placement
+   path the image clock established. `Ctrl+O` puts it at the top of the settings
+   pane (`ui/model/cover_pane.go`), and the `Cover` visualizer mode shows it
+   full width. `Track.AlbumArtURL` stays a thumbnail for MPRIS; the large
+   artwork rides in `ProviderMeta` under `provider.MetaAlbumArtLarge`.
 
-A `Cover` visualizer drew the art as half-blocks. It was cut because the result is
-inherently poor, not because of a fixable bug — worth recording so nobody rebuilds it:
+### The earlier album-art attempt, and why this one works
+
+The first attempt drew the art as half-blocks and was cut: that approach is
+inherently poor, and the note below still holds for it. What changed is the last
+paragraph — Unicode placeholders, proven by the image clock, carry real images
+through Bubbletea after all, so the cover is now drawn at screen resolution:
 
 - A character cell can carry at most **two independently coloured pixels** (the halves
   of `▀`). Quadrant blocks add shapes but not colours; Braille adds dots but is

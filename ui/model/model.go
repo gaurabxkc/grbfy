@@ -508,6 +508,7 @@ type Model struct {
 	hideHelpBar     bool // hide the key-binding hint bar above the status line
 	hideSettings    bool // close the two-column settings pane beside the playlist
 	showMetadata    bool // expand highlighted-track metadata below settings
+	showCover       bool // album art above the settings pane (I)
 	heightExpanded  bool // tracks whether manual 'x' expansion is active
 
 	// Cached per-tick to avoid repeated speaker.Lock() calls in View().

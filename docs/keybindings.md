@@ -133,6 +133,7 @@ and `Esc` clears it.
 | `[` / `]` | Adjust synced-lyrics timing offset (−/+250 ms) while lyrics show timestamped lines |
 | `i` | From the playlist, open full info for the highlighted item, including Path (`Up`/`Down` or `j`/`k` scroll; `i`/`Esc` closes) |
 | `Ctrl+I` | Toggle Metadata below Settings for the highlighted playlist item (remembered in `show_metadata`; requires a terminal that distinguishes Ctrl+I from Tab) |
+| `Ctrl+O` | Show or hide album art at the top of the settings pane (remembered in `show_cover`; needs a terminal with the kitty graphics protocol) |
 | `Ctrl+S` | Save track to `[downloads].directory` (default `~/Music/grbfy`) |
 | `w` | Write the highlighted track to a local playlist |
 | `N` | Open the active provider browser. On a selected Mixcloud show, open that creator's Uploads/Favorites. In the radio pane, open the country browser. |

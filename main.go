@@ -621,6 +621,9 @@ func run(overrides config.Overrides, positional []string, daemon, visualizer60FP
 	if cfg.ShowMetadata {
 		m.SetShowMetadata(true)
 	}
+	if cfg.ShowCover {
+		m.SetShowCover(true)
+	}
 	if cfg.Expanded {
 		m.SetExpanded(true)
 	}

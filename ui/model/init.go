@@ -142,6 +142,13 @@ func (m *Model) SetHideSettingsPane(v bool) {
 }
 
 // SetShowMetadata expands the highlighted-track details below Settings.
+// SetShowCover starts the UI with album art in the settings pane, the state
+// the Ctrl+O binding toggles.
+func (m *Model) SetShowCover(v bool) {
+	m.showCover = v
+	m.refreshChrome()
+}
+
 func (m *Model) SetShowMetadata(v bool) {
 	m.showMetadata = v
 	m.refreshChrome()

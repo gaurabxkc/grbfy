@@ -33,7 +33,7 @@ func (m Model) renderBodyRegion() string {
 	}
 
 	left := columnLines(m.renderPlaylistColumn(), m.layout.playlistWidth, rows)
-	right := columnLines(m.renderSettingsPane(rows), m.layout.settingsWidth, rows)
+	right := columnLines(m.renderSettingsPaneWithCover(rows), m.layout.settingsWidth, rows)
 
 	joined := make([]string, rows)
 	for i := range joined {

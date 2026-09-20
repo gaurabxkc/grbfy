@@ -897,6 +897,9 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 			return m.clearPlayNextQueue()
 		}
 
+	case "ctrl+o":
+		m.toggleCover()
+
 	case "ctrl+s":
 		return m.saveTrack()
 	case "S":

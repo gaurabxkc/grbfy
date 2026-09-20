@@ -503,6 +503,21 @@ func forgetPlacements() {
 	clear(placementSize)
 }
 
+// SetGraphicsOutput redirects the graphics escapes, which otherwise go
+// straight to the terminal. Tests point it at a buffer so a test run does not
+// paint images over the terminal that started it.
+func SetGraphicsOutput(w io.Writer) func() {
+	placementMu.Lock()
+	previous := placementOut
+	placementOut = w
+	placementMu.Unlock()
+	return func() {
+		placementMu.Lock()
+		placementOut = previous
+		placementMu.Unlock()
+	}
+}
+
 // ensurePlacement creates the virtual placement mapping an image onto a cell
 // box of the given size.
 //
