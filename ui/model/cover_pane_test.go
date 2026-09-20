@@ -14,14 +14,17 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/bjarneo/cliamp/playlist"
+
 	"github.com/bjarneo/cliamp/ui"
 )
 
-// serveTestCover publishes a square JPEG and points the UI at it, waiting for
-// the fetch so the artwork is ready to draw.
-func serveTestCover(t *testing.T, width int) {
+// serveTestCover publishes a square JPEG, gives it to the model's playing
+// track, and waits for the fetch so the artwork is ready to draw.
+func serveTestCover(t *testing.T, m *Model, width int) {
 	t.Helper()
 	t.Setenv("GRBFY_CLOCK_GRAPHICS", "1")
+	t.Cleanup(ui.SetGraphicsOutput(io.Discard))
 
 	img := image.NewRGBA(image.Rect(0, 0, 300, 300))
 	for y := range 300 {
@@ -38,7 +41,9 @@ func serveTestCover(t *testing.T, width int) {
 	}))
 	t.Cleanup(srv.Close)
 
-	t.Cleanup(ui.SetGraphicsOutput(io.Discard))
+	m.playlist.SetTrack(0, playlist.Track{
+		Title: "Kerala", Artist: "Bonobo", AlbumArtURL: srv.URL + "/cover.jpg",
+	})
 	ui.SetCoverArt(srv.URL + "/cover.jpg")
 	t.Cleanup(func() { ui.SetCoverArt("") })
 
@@ -54,7 +59,7 @@ func serveTestCover(t *testing.T, width int) {
 // The artwork sits above the settings without pushing them out of the pane.
 func TestSettingsPaneWithCoverFits(t *testing.T) {
 	m := newColumnTestModel(120, 40)
-	serveTestCover(t, m.layout.settingsWidth)
+	serveTestCover(t, &m, m.layout.settingsWidth)
 	m.SetShowCover(true)
 
 	rows := m.effectivePlaylistVisible()
@@ -77,7 +82,7 @@ func TestSettingsPaneWithCoverFits(t *testing.T) {
 // Switched off, the pane is exactly what it was before this feature.
 func TestSettingsPaneWithoutCover(t *testing.T) {
 	m := newColumnTestModel(120, 40)
-	serveTestCover(t, m.layout.settingsWidth)
+	serveTestCover(t, &m, m.layout.settingsWidth)
 
 	rows := m.effectivePlaylistVisible()
 	if got, want := m.renderSettingsPaneWithCover(rows), m.renderSettingsPane(rows); got != want {
@@ -88,7 +93,7 @@ func TestSettingsPaneWithoutCover(t *testing.T) {
 // A short pane keeps its controls rather than giving the rows to a picture.
 func TestCoverDroppedWhenPaneIsShort(t *testing.T) {
 	m := newColumnTestModel(120, 40)
-	serveTestCover(t, m.layout.settingsWidth)
+	serveTestCover(t, &m, m.layout.settingsWidth)
 	m.SetShowCover(true)
 
 	for _, rows := range []int{0, 1, 4, 6} {
@@ -112,5 +117,40 @@ func TestCoverPaneWithoutArtwork(t *testing.T) {
 	}
 	if got, want := m.renderSettingsPaneWithCover(rows), m.renderSettingsPane(rows); got != want {
 		t.Error("the pane changed although there is no artwork")
+	}
+}
+
+// The pane must fetch the artwork itself. Before this, the picture only ever
+// arrived if the Cover visualizer happened to be running, so Ctrl+O showed
+// nothing until you switched visualizers.
+func TestCoverPaneFetchesArtworkWithoutTheVisualizer(t *testing.T) {
+	t.Setenv("GRBFY_CLOCK_GRAPHICS", "1")
+	t.Cleanup(ui.SetGraphicsOutput(io.Discard))
+	ui.SetCoverArt("")
+	t.Cleanup(func() { ui.SetCoverArt("") })
+
+	img := image.NewRGBA(image.Rect(0, 0, 300, 300))
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, img, nil); err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(buf.Bytes())
+	}))
+	t.Cleanup(srv.Close)
+
+	m := newColumnTestModel(120, 40)
+	m.playlist.SetTrack(0, playlist.Track{
+		Title: "Kerala", Artist: "Bonobo", AlbumArtURL: srv.URL + "/cover.jpg",
+	})
+	m.SetShowCover(true)
+
+	rows := m.effectivePlaylistVisible()
+	deadline := time.Now().Add(5 * time.Second)
+	for !strings.ContainsRune(m.renderSettingsPaneWithCover(rows), 0x10EEEE) {
+		if time.Now().After(deadline) {
+			t.Fatal("the pane never drew the artwork on its own")
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
 }

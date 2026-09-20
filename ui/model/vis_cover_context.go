@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+
 	"github.com/bjarneo/cliamp/provider"
 	"github.com/bjarneo/cliamp/ui"
 )
@@ -19,9 +21,14 @@ func (m *Model) visualizerCoverContext() ui.VisCoverContext {
 	if large := track.Meta(provider.MetaAlbumArtLarge); large != "" {
 		art = large
 	}
+	album := track.Album
+	if album != "" && track.Year != 0 {
+		album = fmt.Sprintf("%s · %d", album, track.Year)
+	}
 	return ui.VisCoverContext{
 		ArtURL:      art,
 		TrackTitle:  track.Title,
 		TrackArtist: track.Artist,
+		AlbumLine:   album,
 	}
 }

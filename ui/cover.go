@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"golang.org/x/image/draw"
+
+	"github.com/bjarneo/cliamp/applog"
 )
 
 // Album art as a real image, drawn the same way as the pomodoro clock: the
@@ -29,8 +31,13 @@ import (
 // fullscreen cover, which reads as a mosaic rather than artwork.
 
 const (
-	// coverImageID sits above the clock's glyph ids so the two never collide.
-	coverImageID = 7400
+	// The cover can be on screen twice at once — in the settings pane and in
+	// the visualizer — at different sizes. They need an image id each: a
+	// placeholder names its image by id, so sharing one would make the two
+	// placements fight, which shows as the picture flickering between sizes.
+	// Both sit above the clock's glyph ids so nothing collides.
+	coverImageID      = 7400
+	coverBlockImageID = 7401
 
 	// coverMaxPixels caps the transmitted image. Terminals scale it down to
 	// the placement box, and a 640px cover is already more than a panel can
@@ -47,9 +54,27 @@ const (
 // close to 2; GRBFY_COVER_CELL_ASPECT overrides it.
 var coverCellAspect = 2.0
 
+// coverAspectFixed marks the ratio as settled by the environment, so a later
+// measurement does not overrule what the user asked for.
+var coverAspectFixed bool
+
 func init() {
 	if v, err := strconv.ParseFloat(os.Getenv("GRBFY_COVER_CELL_ASPECT"), 64); err == nil && v >= 1 && v <= 5 {
-		coverCellAspect = v
+		coverCellAspect, coverAspectFixed = v, true
+	}
+}
+
+// refreshCoverCellAspect measures the terminal's real cell shape. Guessing it
+// is what leaves a cover letterboxed: the terminal keeps the picture's own
+// proportions inside the cell box it is given, so a box that is not the same
+// shape as the image shows margins around it.
+func refreshCoverCellAspect() {
+	if coverAspectFixed {
+		return
+	}
+	if measured := terminalCellAspect(); measured > 0 && measured != coverCellAspect {
+		applog.Info("cover: measured terminal cell aspect %.3f (was %.3f)", measured, coverCellAspect)
+		coverCellAspect = measured
 	}
 }
 
@@ -61,7 +86,8 @@ var (
 	coverURL     string
 	coverImg     image.Image
 	coverFetched string
-	coverSentURL string
+	// coverSent is the artwork each image id currently holds.
+	coverSent = map[int]string{}
 
 	coverClient = &http.Client{Timeout: coverFetchTimeout}
 )
@@ -128,7 +154,7 @@ func shrinkCover(src image.Image) image.Image {
 // transmitCover sends the current cover under coverImageID, replacing whatever
 // was there. Deleting first also drops the old image's placements, so the
 // caller must place it again afterwards (the clock learned this the hard way).
-func transmitCover(w io.Writer, img image.Image, url string) bool {
+func transmitCover(w io.Writer, img image.Image, url string, id int) bool {
 	var enc bytes.Buffer
 	if err := (&png.Encoder{CompressionLevel: png.BestSpeed}).Encode(&enc, img); err != nil {
 		return false
@@ -136,7 +162,7 @@ func transmitCover(w io.Writer, img image.Image, url string) bool {
 	b64 := base64.StdEncoding.EncodeToString(enc.Bytes())
 
 	var out bytes.Buffer
-	fmt.Fprintf(&out, "\x1b_Ga=d,d=I,i=%d,q=2\x1b\\", coverImageID)
+	fmt.Fprintf(&out, "\x1b_Ga=d,d=I,i=%d,q=2\x1b\\", id)
 	const chunk = 4000
 	for p := 0; p < len(b64); p += chunk {
 		end := min(p+chunk, len(b64))
@@ -145,7 +171,7 @@ func transmitCover(w io.Writer, img image.Image, url string) bool {
 			more = 1
 		}
 		if p == 0 {
-			fmt.Fprintf(&out, "\x1b_Gf=100,a=t,t=d,i=%d,q=2,m=%d;%s\x1b\\", coverImageID, more, b64[p:end])
+			fmt.Fprintf(&out, "\x1b_Gf=100,a=t,t=d,i=%d,q=2,m=%d;%s\x1b\\", id, more, b64[p:end])
 		} else {
 			fmt.Fprintf(&out, "\x1b_Gm=%d;%s\x1b\\", more, b64[p:end])
 		}
@@ -153,8 +179,8 @@ func transmitCover(w io.Writer, img image.Image, url string) bool {
 	if _, err := w.Write(out.Bytes()); err != nil {
 		return false
 	}
-	forgetPlacements()
-	coverSentURL = url
+	forgetPlacements(id)
+	coverSent[id] = url
 	return true
 }
 
@@ -182,7 +208,7 @@ func coverBox(img image.Image, rows, cols int) (boxRows, boxCols int) {
 // coverRows renders the placeholder cells for the placed image, centred in the
 // panel. Each cell names the image in its foreground colour and its own row and
 // column through combining marks, exactly as the clock's glyphs do.
-func coverRows(rows, cols, boxRows, boxCols int) []string {
+func coverRows(id, rows, cols, boxRows, boxCols int) []string {
 	pad := strings.Repeat(" ", max(0, (cols-boxCols)/2))
 	out := make([]string, 0, rows)
 	for range max(0, (rows-boxRows)/2) {
@@ -191,7 +217,7 @@ func coverRows(rows, cols, boxRows, boxCols int) []string {
 	for r := range boxRows {
 		var sb strings.Builder
 		sb.WriteString(pad)
-		fmt.Fprintf(&sb, "\x1b[38;2;%d;%d;%dm", (coverImageID>>16)&0xFF, (coverImageID>>8)&0xFF, coverImageID&0xFF)
+		fmt.Fprintf(&sb, "\x1b[38;2;%d;%d;%dm", (id>>16)&0xFF, (id>>8)&0xFF, id&0xFF)
 		for c := range boxCols {
 			sb.WriteRune(0x10EEEE)
 			sb.WriteRune(rowColumnDiacritics[r])
@@ -213,6 +239,7 @@ func CoverRowsFor(cols int) int {
 	if !ClockGraphicsAvailable() || cols < 2 {
 		return 0
 	}
+	refreshCoverCellAspect()
 	coverMu.Lock()
 	img := coverImg
 	coverMu.Unlock()
@@ -221,6 +248,42 @@ func CoverRowsFor(cols int) int {
 	}
 	rows, _ := coverBox(img, len(rowColumnDiacritics), cols)
 	return rows
+}
+
+// RenderCoverBlock draws the artwork exactly rows tall, with no padding
+// around it, and reports the width it came out. Callers that place the cover
+// themselves — beside text, inside a column — use this; RenderCover centres
+// it in a region instead.
+func RenderCoverBlock(rows int) (lines []string, width int, ok bool) {
+	if !ClockGraphicsAvailable() || rows < 2 {
+		return nil, 0, false
+	}
+	refreshCoverCellAspect()
+
+	coverMu.Lock()
+	img, url, sent := coverImg, coverURL, coverSent[coverBlockImageID]
+	coverMu.Unlock()
+	if img == nil || url == "" {
+		return nil, 0, false
+	}
+
+	// An unbounded width asks coverBox for the natural width at this height.
+	boxRows, boxCols := coverBox(img, rows, len(rowColumnDiacritics))
+	if boxRows < 2 || boxCols < 2 {
+		return nil, 0, false
+	}
+
+	if sent != url {
+		coverMu.Lock()
+		written := transmitCover(placementOut, img, url, coverBlockImageID)
+		coverMu.Unlock()
+		if !written {
+			return nil, 0, false
+		}
+	}
+	ensurePlacement(coverBlockImageID, boxCols, boxRows)
+
+	return coverRows(coverBlockImageID, boxRows, boxCols, boxRows, boxCols), boxCols, true
 }
 
 // RenderCover draws the current album art, or reports false when there is
@@ -233,7 +296,7 @@ func RenderCover(rows, cols int) (string, bool) {
 
 	coverMu.Lock()
 	img, url := coverImg, coverURL
-	sent := coverSentURL
+	sent := coverSent[coverImageID]
 	coverMu.Unlock()
 	if img == nil || url == "" {
 		return "", false
@@ -246,7 +309,7 @@ func RenderCover(rows, cols int) (string, bool) {
 
 	if sent != url {
 		coverMu.Lock()
-		ok := transmitCover(placementOut, img, url)
+		ok := transmitCover(placementOut, img, url, coverImageID)
 		coverMu.Unlock()
 		if !ok {
 			return "", false
@@ -254,5 +317,5 @@ func RenderCover(rows, cols int) (string, bool) {
 	}
 	ensurePlacement(coverImageID, boxCols, boxRows)
 
-	return strings.Join(coverRows(rows, cols, boxRows, boxCols), "\n"), true
+	return strings.Join(coverRows(coverImageID, rows, cols, boxRows, boxCols), "\n"), true
 }

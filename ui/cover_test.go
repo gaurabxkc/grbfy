@@ -2,11 +2,14 @@ package ui
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/color"
 	"image/jpeg"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -55,7 +58,8 @@ func resetCover(t *testing.T) {
 	t.Helper()
 	reset := func() {
 		coverMu.Lock()
-		coverURL, coverImg, coverFetched, coverSentURL = "", nil, "", ""
+		coverURL, coverImg, coverFetched = "", nil, ""
+		clear(coverSent)
 		coverMu.Unlock()
 	}
 	reset()
@@ -172,4 +176,159 @@ func cellWidth(s string) int {
 		}
 	}
 	return n
+}
+
+// The Cover mode pairs the art with the track's details instead of leaving a
+// square picture alone in the middle of the band.
+func TestCoverModeDrawsDetailsBesideArt(t *testing.T) {
+	t.Setenv("GRBFY_CLOCK_GRAPHICS", "1")
+	t.Setenv("GRBFY_COVER_CELL_ASPECT", "2")
+	coverAspectFixed, coverCellAspect = true, 2
+	t.Cleanup(func() { coverAspectFixed = false })
+	resetCover(t)
+	t.Cleanup(SetGraphicsOutput(io.Discard))
+
+	SetCoverArt(serveCover(t, 640, 640))
+	waitForCover(t)
+
+	defer WithPanelWidth(74)()
+	d := &coverDriver{ctx: VisCoverContext{
+		TrackTitle:  "Kerala",
+		TrackArtist: "Bonobo",
+		AlbumLine:   "Migration · 2017",
+	}}
+	v := &Visualizer{Rows: 10}
+
+	out := d.Render(v)
+	lines := strings.Split(out, "\n")
+	if len(lines) != v.Rows {
+		t.Fatalf("render has %d lines, want %d", len(lines), v.Rows)
+	}
+	plain := ansiRe.ReplaceAllString(out, "")
+	for _, want := range []string{"Kerala", "Bonobo", "Migration · 2017"} {
+		if !strings.Contains(plain, want) {
+			t.Errorf("%q is missing beside the art", want)
+		}
+	}
+	if !strings.ContainsRune(out, 0x10EEEE) {
+		t.Error("no album art in the render")
+	}
+	for i, line := range lines {
+		if n := cellWidth(ansiRe.ReplaceAllString(line, "")); n > PanelWidth {
+			t.Errorf("line %d is %d cells wide, want <= %d", i, n, PanelWidth)
+		}
+	}
+}
+
+// A panel too narrow for both falls back to the art alone, then to text.
+func TestCoverModeNarrowPanel(t *testing.T) {
+	t.Setenv("GRBFY_CLOCK_GRAPHICS", "1")
+	t.Setenv("GRBFY_COVER_CELL_ASPECT", "2")
+	coverAspectFixed, coverCellAspect = true, 2
+	t.Cleanup(func() { coverAspectFixed = false })
+	resetCover(t)
+	t.Cleanup(SetGraphicsOutput(io.Discard))
+
+	SetCoverArt(serveCover(t, 640, 640))
+	waitForCover(t)
+
+	defer WithPanelWidth(24)()
+	d := &coverDriver{ctx: VisCoverContext{TrackTitle: "Kerala", TrackArtist: "Bonobo"}}
+	out := d.Render(&Visualizer{Rows: 10})
+	if strings.Contains(ansiRe.ReplaceAllString(out, ""), "Kerala") {
+		t.Error("details were drawn into a panel with no room for them")
+	}
+	if !strings.ContainsRune(out, 0x10EEEE) {
+		t.Error("the art itself should still be drawn")
+	}
+}
+
+// The pane and the visualizer draw the cover at different sizes at the same
+// time. Sharing one image id made each render steal the other's placement,
+// which showed as the picture flickering between the two sizes.
+func TestCoverSlotsDoNotFight(t *testing.T) {
+	t.Setenv("GRBFY_CLOCK_GRAPHICS", "1")
+	resetCover(t)
+	out := capturePlacements(t)
+
+	SetCoverArt(serveCover(t, 640, 640))
+	waitForCover(t)
+
+	// First render of each: both transmit and place, once.
+	pane, ok := RenderCover(10, 26)
+	if !ok {
+		t.Fatal("pane cover did not draw")
+	}
+	block, _, ok := RenderCoverBlock(14)
+	if !ok {
+		t.Fatal("visualizer cover did not draw")
+	}
+	if paneID, blockID := placeholderID(t, pane), placeholderID(t, strings.Join(block, "\n")); paneID == blockID {
+		t.Fatalf("both covers use image id %d; they need one each", paneID)
+	}
+
+	// Steady state: alternating renders must not resend anything.
+	out.Reset()
+	for range 5 {
+		RenderCover(10, 26)
+		RenderCoverBlock(14)
+	}
+	if sent := out.String(); sent != "" {
+		t.Errorf("alternating renders re-sent %d bytes: %q", len(sent), sent)
+	}
+}
+
+// A cover refresh must not blank the other copy: forgetting every placement
+// made the pane's cover disappear whenever the visualizer's was re-sent.
+func TestCoverRefreshKeepsTheOtherPlacement(t *testing.T) {
+	t.Setenv("GRBFY_CLOCK_GRAPHICS", "1")
+	resetCover(t)
+	out := capturePlacements(t)
+
+	SetCoverArt(serveCover(t, 640, 640))
+	waitForCover(t)
+	RenderCover(10, 26)
+	RenderCoverBlock(14)
+
+	// A new track: both copies refresh, each placing itself again.
+	SetCoverArt(serveCover(t, 300, 300))
+	waitForCover(t)
+	out.Reset()
+	RenderCover(10, 26)
+	RenderCoverBlock(14)
+
+	sent := out.String()
+	for _, id := range []int{coverImageID, coverBlockImageID} {
+		place := fmt.Sprintf("a=p,U=1,i=%d", id)
+		if !strings.Contains(sent, place) {
+			t.Errorf("image %d was re-sent but never placed again", id)
+		}
+	}
+
+	// And the frame after settles: nothing more goes to the terminal.
+	out.Reset()
+	RenderCover(10, 26)
+	RenderCoverBlock(14)
+	if extra := out.String(); extra != "" {
+		t.Errorf("still writing escapes once settled: %q", extra)
+	}
+}
+
+// placeholderID reads the image id back out of a rendered cover: it travels in
+// the foreground colour of the placeholder cells.
+func placeholderID(t *testing.T, render string) int {
+	t.Helper()
+	m := regexp.MustCompile(`\x1b\[38;2;(\d+);(\d+);(\d+)m`).FindStringSubmatch(render)
+	if m == nil {
+		t.Fatal("no placeholder colour in the render")
+	}
+	id := 0
+	for _, part := range m[1:] {
+		n := 0
+		for _, r := range part {
+			n = n*10 + int(r-'0')
+		}
+		id = id<<8 | n
+	}
+	return id
 }

@@ -439,7 +439,7 @@ func TransmitClockGlyphs(w io.Writer) {
 	case done := <-tintEncoded:
 		tintBuilding = color.RGBA{}
 		_, _ = w.Write(done.data)
-		forgetPlacements()
+		forgetPlacements(clockGlyphIDs()...)
 		sentTint = done.tint
 	default:
 	}
@@ -457,7 +457,7 @@ func TransmitClockGlyphs(w io.Writer) {
 		// Nothing on screen yet: an async first send would leave the clock
 		// blank for a frame, which on a one-second clock reads as a fault.
 		_, _ = w.Write(encodeClockGlyphs(cachedMasks, want))
-		forgetPlacements()
+		forgetPlacements(clockGlyphIDs()...)
 		sentTint = want
 		return
 	}
@@ -465,6 +465,15 @@ func TransmitClockGlyphs(w io.Writer) {
 	tintBuilding = want
 	masks := cachedMasks
 	go func() { tintEncoded <- encodedGlyphs{want, encodeClockGlyphs(masks, want)} }()
+}
+
+// clockGlyphIDs lists the image ids the glyphs occupy.
+func clockGlyphIDs() []int {
+	ids := make([]int, len(clockGlyphOrder))
+	for i := range clockGlyphOrder {
+		ids[i] = clockGlyphBase + i
+	}
+	return ids
 }
 
 func glyphAdvance(ch rune) float64 {
@@ -492,15 +501,22 @@ var (
 	placementOut io.Writer = os.Stdout
 )
 
-// forgetPlacements drops the record of what is placed. Every glyph send starts
-// by deleting the old images, and deleting an image also deletes its
-// placements, so after a send nothing is placed any more. Without this a theme
-// change re-sent the glyphs and ensurePlacement, believing them still placed,
-// never placed them again: the clock went blank until restart.
-func forgetPlacements() {
+// forgetPlacements drops the record of what is placed for the given image ids.
+// A send starts by deleting the old image, and deleting an image deletes its
+// placements too, so afterwards those ids are no longer placed. Without this a
+// theme change re-sent the clock glyphs and ensurePlacement, believing them
+// still placed, never placed them again: the clock went blank until restart.
+//
+// Only the ids that were actually re-sent are forgotten. Clearing the lot
+// would make one image's refresh blank every other image on screen — the cover
+// in the settings pane losing its placement whenever the visualizer's copy was
+// re-sent, and vice versa.
+func forgetPlacements(ids ...int) {
 	placementMu.Lock()
 	defer placementMu.Unlock()
-	clear(placementSize)
+	for _, id := range ids {
+		delete(placementSize, id)
+	}
 }
 
 // SetGraphicsOutput redirects the graphics escapes, which otherwise go

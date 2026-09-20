@@ -23,6 +23,11 @@ func (m Model) coverPaneRows(rows int) int {
 	if !m.showCover || !m.layout.twoColumn {
 		return 0
 	}
+	// The pane is a consumer of the artwork in its own right: the Cover
+	// visualizer may never run, and the fetch has to start from whoever wants
+	// the picture first. SetCoverArt only acts on a change.
+	ui.SetCoverArt(m.visualizerCoverContext().ArtURL)
+
 	want := ui.CoverRowsFor(m.layout.settingsWidth)
 	if want == 0 {
 		return 0
@@ -62,15 +67,21 @@ func (m Model) renderSettingsPaneWithCover(rows int) string {
 func (m *Model) toggleCover() {
 	m.SetShowCover(!m.showCover)
 	m.saveConfigKey("show_cover", strconv.FormatBool(m.showCover))
+
+	art := m.visualizerCoverContext().ArtURL
+	ui.SetCoverArt(art)
 	switch {
 	case !m.showCover:
 		m.status.Show("Album art hidden", statusTTLShort)
+	case !ui.ClockGraphicsAvailable():
+		m.status.Show("Album art needs a terminal with image support", statusTTLDefault)
 	case !m.layout.twoColumn:
 		m.status.Show("Album art needs a wider terminal", statusTTLDefault)
+	case art == "":
+		m.status.Show("No album art for this track", statusTTLDefault)
 	case ui.CoverRowsFor(m.layout.settingsWidth) == 0:
-		// No artwork yet: either the track has none, the fetch is still in
-		// flight, or the terminal cannot draw images.
-		m.status.Show("Album art: nothing to show for this track", statusTTLDefault)
+		// The fetch is in flight; the next frame draws it.
+		m.status.Show("Album art: loading…", statusTTLShort)
 	default:
 		m.status.Show("Album art shown", statusTTLShort)
 	}
