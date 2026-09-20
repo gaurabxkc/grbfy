@@ -9,6 +9,7 @@ import (
 	_ "image/jpeg"
 	"image/png"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
@@ -73,10 +74,18 @@ func refreshCoverCellAspect() {
 	if coverAspectFixed {
 		return
 	}
-	if measured := terminalCellAspect(); measured > 0 && measured != coverCellAspect {
-		applog.Info("cover: measured terminal cell aspect %.3f (was %.3f)", measured, coverCellAspect)
-		coverCellAspect = measured
+	measured := terminalCellAspect()
+	if measured <= 0 {
+		return
 	}
+	// The reported pixel size rounds differently from frame to frame, so only
+	// a real change is worth acting on — and worth a log line, which used to
+	// be written on nearly every render.
+	if math.Abs(measured-coverCellAspect) < 0.02 {
+		return
+	}
+	applog.Info("cover: terminal cell aspect %.2f (was %.2f)", measured, coverCellAspect)
+	coverCellAspect = measured
 }
 
 // coverState is one image id's contents.
