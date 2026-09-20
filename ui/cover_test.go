@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -58,8 +59,10 @@ func resetCover(t *testing.T) {
 	t.Helper()
 	reset := func() {
 		coverMu.Lock()
-		coverURL, coverImg, coverFetched = "", nil, ""
+		coverURL, coverImg, coverFetching = "", nil, ""
 		clear(coverSent)
+		clear(coverCache)
+		coverCacheKeys = nil
 		coverMu.Unlock()
 	}
 	reset()
@@ -376,5 +379,104 @@ func TestFitToCellBoxWithoutCellSize(t *testing.T) {
 		// Tests do not run on a terminal, so terminalCellPixels reports
 		// nothing and the picture comes back untouched.
 		t.Errorf("image was altered without a known cell size: %v", got.Bounds())
+	}
+}
+
+// Pausing can briefly leave no playing track, which clears the artwork. The
+// same URL coming back must draw again: it used to be remembered as already
+// fetched, so the cover stayed blank until the track changed.
+func TestCoverReturnsAfterBeingCleared(t *testing.T) {
+	t.Setenv("GRBFY_CLOCK_GRAPHICS", "1")
+	resetCover(t)
+	t.Cleanup(SetGraphicsOutput(io.Discard))
+
+	url := serveCover(t, 300, 300)
+	SetCoverArt(url)
+	waitForCover(t)
+
+	SetCoverArt("") // the blip
+	if _, ok := RenderCover(10, 26); ok {
+		t.Fatal("drew a cover with none set")
+	}
+
+	SetCoverArt(url)
+	coverMu.Lock()
+	restored := coverImg != nil
+	coverMu.Unlock()
+	if !restored {
+		t.Fatal("the cover did not come back from the cache")
+	}
+	if _, ok := RenderCover(10, 26); !ok {
+		t.Error("the cover did not draw again after coming back")
+	}
+}
+
+// A fetch that fails must not block later attempts at the same artwork.
+func TestCoverRetriesAfterAFailedFetch(t *testing.T) {
+	resetCover(t)
+
+	var fail atomic.Bool
+	fail.Store(true)
+	img := image.NewRGBA(image.Rect(0, 0, 300, 300))
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, img, nil); err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if fail.Load() {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		_, _ = w.Write(buf.Bytes())
+	}))
+	t.Cleanup(srv.Close)
+	url := srv.URL + "/cover.jpg"
+
+	SetCoverArt(url)
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		coverMu.Lock()
+		inFlight := coverFetching
+		coverMu.Unlock()
+		if inFlight == "" || time.Now().After(deadline) {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	// The server recovers; asking again has to try again.
+	fail.Store(false)
+	SetCoverArt("")
+	SetCoverArt(url)
+	waitForCover(t)
+}
+
+// The terminal can drop a placement without saying so — a repaint on pause
+// did, and the cover never came back because we thought it was still placed.
+// Placements are therefore re-issued after a while.
+func TestPlacementsAreReissuedAfterAWhile(t *testing.T) {
+	t.Setenv("GRBFY_CLOCK_GRAPHICS", "1")
+	resetCover(t)
+	out := capturePlacements(t)
+
+	previous := placementRefresh
+	placementRefresh = 10 * time.Millisecond
+	t.Cleanup(func() { placementRefresh = previous })
+
+	SetCoverArt(serveCover(t, 300, 300))
+	waitForCover(t)
+	RenderCover(10, 26)
+
+	out.Reset()
+	RenderCover(10, 26)
+	if immediate := out.String(); immediate != "" {
+		t.Errorf("re-placed straight away: %q", immediate)
+	}
+
+	time.Sleep(20 * time.Millisecond)
+	out.Reset()
+	RenderCover(10, 26)
+	if !strings.Contains(out.String(), "a=p") {
+		t.Error("the placement was never re-issued")
 	}
 }

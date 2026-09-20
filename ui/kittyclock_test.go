@@ -178,7 +178,7 @@ func capturePlacements(t *testing.T) *bytes.Buffer {
 
 	placementMu.Lock()
 	prevOut, prevMade := placementOut, placementSize
-	placementOut, placementSize = &buf, map[int][2]int{}
+	placementOut, placementSize = &buf, map[int]placement{}
 	placementMu.Unlock()
 
 	t.Cleanup(func() {

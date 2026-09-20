@@ -18,6 +18,7 @@ import (
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"
+	"time"
 )
 
 // Drawing the pomodoro clock as a real image rather than block characters.
@@ -494,12 +495,24 @@ func clockGlyphID(ch rune) (int, bool) {
 
 var (
 	placementMu sync.Mutex
-	// Size each image is currently placed at, so a resize replaces the
+	// What each image is currently placed as, so a resize replaces the
 	// placement rather than adding a second one.
-	placementSize = map[int][2]int{}
+	placementSize = map[int]placement{}
 	// placementOut is the terminal; overridden in tests.
 	placementOut io.Writer = os.Stdout
 )
+
+// placement is one image's current placement and when it was last issued.
+type placement struct {
+	cols, rows int
+	at         time.Time
+}
+
+// placementRefresh re-issues a placement that has stood for this long. The
+// terminal can drop placements without telling us — a repaint on pause did
+// exactly that, and the picture stayed gone because we believed it was still
+// placed. Re-issuing is a few dozen bytes, so it is cheaper than being wrong.
+var placementRefresh = 2 * time.Second
 
 // forgetPlacements drops the record of what is placed for the given image ids.
 // A send starts by deleting the old image, and deleting an image deletes its
@@ -546,10 +559,11 @@ func ensurePlacement(id, cols, rows int) {
 	placementMu.Lock()
 	defer placementMu.Unlock()
 
-	if got, ok := placementSize[id]; ok && got == [2]int{cols, rows} {
+	if got, ok := placementSize[id]; ok && got.cols == cols && got.rows == rows &&
+		time.Since(got.at) < placementRefresh {
 		return
 	}
-	placementSize[id] = [2]int{cols, rows}
+	placementSize[id] = placement{cols: cols, rows: rows, at: time.Now()}
 
 	// An explicit placement id matters: without one the terminal accumulates a
 	// separate placement per size, and a placeholder cannot say which it means,

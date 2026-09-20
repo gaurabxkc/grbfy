@@ -89,9 +89,17 @@ var (
 	// coverURL is what the model last asked for; coverImg is the decoded
 	// picture for it, nil until the fetch lands. coverSentURL is what the
 	// terminal currently holds under coverImageID.
-	coverURL     string
-	coverImg     image.Image
-	coverFetched string
+	coverURL string
+	coverImg image.Image
+	// coverFetching is the URL a fetch is in flight for, so a second request
+	// for it does not start another.
+	coverFetching string
+	// coverCache holds the last few decoded covers. Playback pausing, or any
+	// other blip that briefly leaves no playing track, clears the current
+	// artwork; without a cache the same URL coming back would be treated as
+	// already fetched and never drawn again.
+	coverCache     = map[string]image.Image{}
+	coverCacheKeys []string
 	// coverSent is what each image id currently holds: the artwork's URL and
 	// the cell box it was scaled for. A different box needs a fresh scale, or
 	// the terminal fits the picture itself and rounds each row as it goes.
@@ -109,15 +117,43 @@ func SetCoverArt(url string) {
 		return
 	}
 	coverURL = url
-	coverImg = nil
-	if url == "" || coverFetched == url {
+	coverImg = coverCache[url]
+	if url == "" || coverImg != nil || coverFetching == url {
 		return
 	}
-	coverFetched = url
+	coverFetching = url
 	go fetchCover(url)
 }
 
+// cacheCoverLocked remembers a decoded cover, keeping the last few so going
+// back to a recent track redraws at once. coverMu must be held.
+func cacheCoverLocked(url string, img image.Image) {
+	const keep = 4
+	if _, seen := coverCache[url]; !seen {
+		coverCacheKeys = append(coverCacheKeys, url)
+	}
+	coverCache[url] = img
+	for len(coverCacheKeys) > keep {
+		delete(coverCache, coverCacheKeys[0])
+		coverCacheKeys = coverCacheKeys[1:]
+	}
+}
+
 func fetchCover(url string) {
+	// Whatever happens, stop claiming a fetch is in flight, or a failure
+	// would block every later attempt at the same artwork.
+	done := true
+	defer func() {
+		if !done {
+			return
+		}
+		coverMu.Lock()
+		if coverFetching == url {
+			coverFetching = ""
+		}
+		coverMu.Unlock()
+	}()
+
 	resp, err := coverClient.Get(url)
 	if err != nil {
 		return
@@ -138,8 +174,13 @@ func fetchCover(url string) {
 	}
 	img = shrinkCover(img)
 
+	done = false // the locked section below clears the marker itself
 	coverMu.Lock()
 	defer coverMu.Unlock()
+	cacheCoverLocked(url, img)
+	if coverFetching == url {
+		coverFetching = ""
+	}
 	// The track may have changed while this was in flight.
 	if coverURL == url {
 		coverImg = img
