@@ -198,7 +198,7 @@ func (p *SpotifyProvider) ArtistAlbums(artistID string) ([]provider.AlbumInfo, e
 
 		fetched += len(items)
 		if fetched >= total || len(items) < limit {
-			return out, nil
+			return p.withTopTracks(artistID, out), nil
 		}
 	}
 }
@@ -240,4 +240,18 @@ func (p *SpotifyProvider) BrowseEntries() []provider.BrowseEntry {
 			AfterSection: "Library",
 		},
 	}
+}
+
+// withTopTracks puts the artist's top tracks ahead of their albums, where the
+// Spotify app puts them too.
+func (p *SpotifyProvider) withTopTracks(artistID string, albums []provider.AlbumInfo) []provider.AlbumInfo {
+	name := ""
+	if len(albums) > 0 {
+		name = albums[0].Artist
+	}
+	entry, ok := p.topTracksEntry(artistID, name)
+	if !ok {
+		return albums
+	}
+	return append([]provider.AlbumInfo{entry}, albums...)
 }

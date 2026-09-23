@@ -817,6 +817,10 @@ func (m *Model) fetchNavArtistAllTracksCmd(ab provider.ArtistBrowser, artistID s
 		}
 		var all []playlist.Track
 		for _, album := range albums {
+			// A top-tracks list repeats songs that are on the albums too.
+			if album.Synthetic {
+				continue
+			}
 			tracks, err := loader.AlbumTracks(album.ID)
 			if err != nil {
 				return navTracksLoadedMsg{gen: gen, err: err}

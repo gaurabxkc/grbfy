@@ -1105,6 +1105,9 @@ func (p *SpotifyProvider) AlbumTracksContext(ctx context.Context, albumID string
 	if err := p.ensureSession(); err != nil {
 		return nil, err
 	}
+	if strings.HasPrefix(albumID, topTracksPrefix) {
+		return p.artistTopTracks(ctx, albumID)
+	}
 	album, err := p.album(ctx, albumID)
 	if err != nil {
 		return nil, err

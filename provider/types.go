@@ -26,6 +26,10 @@ type AlbumInfo struct {
 	// Restricted is presentation metadata for provider items that may require
 	// account access. It must not be folded into Name or persisted metadata.
 	Restricted bool
+	// Synthetic marks a list the provider assembles, such as an artist's top
+	// tracks, rather than a real release. Its tracks also appear on their own
+	// albums, so anything gathering "every track by this artist" skips it.
+	Synthetic bool
 }
 
 // GenreInfo describes a provider category and whether it is pinned as a

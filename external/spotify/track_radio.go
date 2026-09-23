@@ -89,7 +89,7 @@ func (p *SpotifyProvider) TrackRadio(ctx context.Context, trackPath string) ([]p
 	tracks := make([]playlist.Track, 0, len(uris))
 	for start := 0; start < len(uris); start += trackRadioBatch {
 		end := min(start+trackRadioBatch, len(uris))
-		batch, err := p.stationMetadata(ctx, uris[start:end])
+		batch, err := p.trackMetadata(ctx, uris[start:end])
 		if err != nil {
 			return nil, err
 		}
@@ -101,12 +101,13 @@ func (p *SpotifyProvider) TrackRadio(ctx context.Context, trackPath string) ([]p
 	return tracks, nil
 }
 
-// stationMetadata fills in one batch of station URIs.
+// trackMetadata fills in one batch of track URIs: a radio station, an
+// artist's top tracks, anything the client protocol names by URI.
 //
 // This goes through the client protocol rather than the Web API. /v1/tracks
 // answers 403 to a Development Mode registration, which is every personal
 // client_id, and the station is useless without titles.
-func (p *SpotifyProvider) stationMetadata(ctx context.Context, uris []string) ([]playlist.Track, error) {
+func (p *SpotifyProvider) trackMetadata(ctx context.Context, uris []string) ([]playlist.Track, error) {
 	if len(uris) == 0 {
 		return nil, nil
 	}
