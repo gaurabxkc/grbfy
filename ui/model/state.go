@@ -321,6 +321,22 @@ type spotSearchState struct {
 	newName      string                  // new playlist name input
 	err          string
 	cancel       func()
+	// added holds the paths of results queued or appended from this search.
+	// Adding no longer closes the results, so the list marks what is already
+	// in, which is how several songs get picked from one search without
+	// adding the same one twice by accident.
+	added map[string]bool
+}
+
+// markSpotAdded records a result as added from the open search.
+func (s *spotSearchState) markSpotAdded(path string) {
+	if path == "" {
+		return
+	}
+	if s.added == nil {
+		s.added = map[string]bool{}
+	}
+	s.added[path] = true
 }
 
 // catalogBatchState holds state for lazy-loading catalog entries from a provider.CatalogLoader.

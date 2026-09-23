@@ -105,7 +105,8 @@ func (m *Model) handleSpotSearchResultsKey(msg tea.KeyPressMsg) tea.Cmd {
 			if track.IsAlbum() {
 				return m.expandSpotAlbum(track, spotAlbumAppend)
 			}
-			m.closeSpotSearch()
+			// Stays open: picking several songs from one search is the point.
+			m.spotSearch.markSpotAdded(track.Path)
 			return m.appendTrack(track)
 		}
 	case "q":
@@ -114,7 +115,7 @@ func (m *Model) handleSpotSearchResultsKey(msg tea.KeyPressMsg) tea.Cmd {
 			if track.IsAlbum() {
 				return m.expandSpotAlbum(track, spotAlbumQueueNext)
 			}
-			m.closeSpotSearch()
+			m.spotSearch.markSpotAdded(track.Path)
 			return m.queueTrackNext(track)
 		}
 	case "p":

@@ -887,15 +887,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		album := msg.album
 		tracks := msg.tracks
-		m.closeSpotSearch()
 		switch msg.action {
 		case spotAlbumAppend:
+			// Adding an album keeps the results open, like adding a song.
+			m.spotSearch.markSpotAdded(album.Path)
 			cmd := m.appendAlbum(album, tracks)
 			return m, cmd
 		case spotAlbumQueueNext:
+			m.spotSearch.markSpotAdded(album.Path)
 			cmd := m.queueAlbumNext(album, tracks)
 			return m, cmd
 		default:
+			m.closeSpotSearch()
 			cmd := m.playAlbumImmediate(album, tracks)
 			return m, cmd
 		}

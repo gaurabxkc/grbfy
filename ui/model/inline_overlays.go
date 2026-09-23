@@ -102,7 +102,11 @@ func (m Model) renderSpotSearchResults(budget int) string {
 			lines = append(lines, dimStyle.Render(labeledSeparator("", row.Section)))
 			continue
 		}
-		label := truncate(trackViewName(row.Track), ui.PanelWidth-8)
+		mark := "  "
+		if m.spotSearch.added[row.Track.Path] {
+			mark = "✓ "
+		}
+		label := mark + truncate(trackViewName(row.Track), ui.PanelWidth-10)
 		lines = append(lines, cursorLine(label, row.Index == m.spotSearch.cursor))
 	}
 	return strings.Join(padLines(lines, budget, len(lines)), "\n")
