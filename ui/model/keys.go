@@ -705,9 +705,9 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 	case "f":
 		return m.togglePlaylistStar()
 
-	case "ctrl+y":
-		// Not W: the bundled sleep-timer plugin owns W, and a core key takes
-		// it before any plugin sees it. Every free uppercase letter is gone.
+	case "W":
+		// Same key as upstream cliamp's song radio (#544), so muscle memory
+		// carries across. The sleep timer moved to Ctrl+Y to make room.
 		return m.startTrackRadio()
 
 	case "n":

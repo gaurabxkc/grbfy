@@ -1,6 +1,6 @@
 -- sleep-timer.lua — Stop playback after a set time, fading out first.
 --
--- Press W to cycle: off -> 15m -> 30m -> 45m -> 60m -> off.
+-- Press Ctrl+Y to cycle: off -> 15m -> 30m -> 45m -> 60m -> off.
 -- Also scriptable:  grbfy plugins call sleep-timer set 30
 --                   grbfy plugins call sleep-timer cancel
 --                   grbfy plugins call sleep-timer status
@@ -116,12 +116,12 @@ local function status_text()
     return string.format("Sleep timer: %dm %ds left", math.floor(left / 60), left % 60)
 end
 
-local bound, why = p:bind("W", "Sleep timer", function()
+local bound, why = p:bind("ctrl+y", "Sleep timer", function()
     choice_idx = choice_idx % #choices + 1
     arm(choices[choice_idx])
 end)
 if not bound then
-    grbfy.log.warn("could not bind W: " .. tostring(why) .. " (use `grbfy plugins call sleep-timer set <minutes>`)")
+    grbfy.log.warn("could not bind Ctrl+Y: " .. tostring(why) .. " (use `grbfy plugins call sleep-timer set <minutes>`)")
 end
 
 p:command("set", function(args)

@@ -9,7 +9,7 @@ import "testing"
 func TestStudyPluginKeysStayFree(t *testing.T) {
 	reserved := ReservedKeys()
 	for key, plugin := range map[string]string{
-		"W":      "sleep-timer",
+		"ctrl+y": "sleep-timer",
 		"H":      "pomodoro",
 		"(":      "pomodoro",
 		")":      "pomodoro",

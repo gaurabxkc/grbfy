@@ -131,7 +131,7 @@ var commandRegistry = []commandSpec{
 		}
 		return "Bookmark track"
 	}, Enabled: func(m Model) bool { return m.selectedPlaylistStarAction() != starUnavailable }, Keymap: true, ContextHelp: true, Prominent: true},
-	{Mode: commandModeMain, Keys: []string{"ctrl+y"}, KeyLabel: "Ctrl+Y", Label: "Start radio from track", Enabled: func(m Model) bool {
+	{Mode: commandModeMain, Keys: []string{"W"}, KeyLabel: "W", Label: "Start radio from track", Enabled: func(m Model) bool {
 		if m.focus != focusPlaylist || m.playlist == nil || m.plCursor < 0 || m.plCursor >= m.playlist.Len() {
 			return false
 		}

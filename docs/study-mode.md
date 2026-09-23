@@ -22,7 +22,7 @@ again. Confirm with `grbfy plugins list`.
 
 ## Sleep timer
 
-Press <kbd>W</kbd> to cycle: off → 15m → 30m → 45m → 60m → off.
+Press <kbd>Ctrl+Y</kbd> to cycle: off → 15m → 30m → 45m → 60m → off.
 
 When the time is up the volume fades down over 20 seconds, playback stops, and
 **the volume is restored**, so the fade does not quietly follow you into the
@@ -130,7 +130,7 @@ adjust_minutes = 1          # step for ( and )
 
 ## Keys
 
-<kbd>W</kbd>, <kbd>H</kbd>, <kbd>(</kbd> and <kbd>)</kbd> are bound at load time and appear in the
+<kbd>Ctrl+Y</kbd>, <kbd>H</kbd>, <kbd>(</kbd> and <kbd>)</kbd> are bound at load time and appear in the
 <kbd>Ctrl+K</kbd> keymap under ",  plugins , ". They work from any list-style
 overlay as well as the main view, because a timer key is about the session
 rather than about whichever list happens to be open; a key the overlay binds
