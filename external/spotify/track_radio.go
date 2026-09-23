@@ -2,12 +2,13 @@ package spotify
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/hex"
 	"fmt"
-	"net/url"
 	"strings"
 
 	"github.com/bjarneo/cliamp/playlist"
+	extmetapb "github.com/devgianlu/go-librespot/proto/spotify/extendedmetadata"
+	metadatapb "github.com/devgianlu/go-librespot/proto/spotify/metadata"
 	playerpb "github.com/devgianlu/go-librespot/proto/spotify/player"
 )
 
@@ -44,8 +45,22 @@ func (s *Session) stationURIs(ctx context.Context, trackURI string) ([]string, e
 	return uris, nil
 }
 
-// trackRadioBatch is the most ids /v1/tracks accepts in one request.
-const trackRadioBatch = 50
+// trackRadioBatch matches what Spotify's own clients send in one extended
+// metadata request, so this traffic is shaped like every other client
+// speaking the protocol.
+const trackRadioBatch = 100
+
+// spotifyImageHost is where a cover file id resolves to an actual image.
+const spotifyImageHost = "https://i.scdn.co/image/"
+
+// metadataImageWidth fills in the width for images that carry a size class
+// rather than pixel dimensions.
+var metadataImageWidth = map[metadatapb.Image_Size]int{
+	metadatapb.Image_DEFAULT: 300,
+	metadatapb.Image_SMALL:   64,
+	metadatapb.Image_LARGE:   640,
+	metadatapb.Image_XLARGE:  640,
+}
 
 // TrackRadio returns the station Spotify builds from the given track, ready to
 // play. The seed itself is left out: it is the track just heard, and a station
@@ -86,35 +101,100 @@ func (p *SpotifyProvider) TrackRadio(ctx context.Context, trackPath string) ([]p
 	return tracks, nil
 }
 
-// stationMetadata fills in one batch of station URIs through /v1/tracks, which
-// a Development Mode registration is still allowed to call.
+// stationMetadata fills in one batch of station URIs.
+//
+// This goes through the client protocol rather than the Web API. /v1/tracks
+// answers 403 to a Development Mode registration, which is every personal
+// client_id, and the station is useless without titles.
 func (p *SpotifyProvider) stationMetadata(ctx context.Context, uris []string) ([]playlist.Track, error) {
-	ids := make([]string, 0, len(uris))
-	for _, u := range uris {
-		ids = append(ids, strings.TrimPrefix(u, "spotify:track:"))
+	if len(uris) == 0 {
+		return nil, nil
+	}
+	sess := p.session
+	if sess == nil || sess.sess == nil {
+		return nil, fmt.Errorf("spotify: radio metadata: no session")
 	}
 
-	resp, err := p.webAPI(ctx, "GET", "/v1/tracks", url.Values{"ids": {strings.Join(ids, ",")}})
+	reqs := make([]*extmetapb.EntityRequest, 0, len(uris))
+	for _, uri := range uris {
+		reqs = append(reqs, &extmetapb.EntityRequest{
+			EntityUri: uri,
+			Query:     []*extmetapb.ExtensionQuery{{ExtensionKind: extmetapb.ExtensionKind_TRACK_V4}},
+		})
+	}
+
+	sess.mu.RLock()
+	client := sess.sess.Spclient()
+	sess.mu.RUnlock()
+
+	res, err := client.ExtendedMetadata(ctx, &extmetapb.BatchedEntityRequest{EntityRequest: reqs})
 	if err != nil {
 		return nil, fmt.Errorf("spotify: radio metadata: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
 
-	var payload struct {
-		Tracks []*spotifyItem `json:"tracks"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		return nil, fmt.Errorf("spotify: radio metadata: %w", err)
+	// The response is not ordered like the request, so index it and rebuild
+	// the station in the order Spotify chose for it.
+	byURI := make(map[string]playlist.Track, len(uris))
+	for _, ext := range res.GetExtendedMetadata() {
+		for _, d := range ext.GetExtensionData() {
+			var tr metadatapb.Track
+			if err := d.GetExtensionData().UnmarshalTo(&tr); err != nil {
+				continue // a track Spotify declines to describe is skipped
+			}
+			byURI[d.GetEntityUri()] = trackFromMetadata(d.GetEntityUri(), &tr)
+		}
 	}
 
-	tracks := make([]playlist.Track, 0, len(payload.Tracks))
-	for _, item := range payload.Tracks {
-		// A station can name a track this account cannot play, which comes
-		// back as null rather than an error.
-		if item == nil || item.ID == "" {
+	out := make([]playlist.Track, 0, len(uris))
+	for _, uri := range uris {
+		if t, ok := byURI[uri]; ok {
+			out = append(out, t)
+		}
+	}
+	return out, nil
+}
+
+// trackFromMetadata converts Spotify's internal track message into a track.
+func trackFromMetadata(uri string, tr *metadatapb.Track) playlist.Track {
+	names := make([]string, 0, len(tr.GetArtist()))
+	for _, a := range tr.GetArtist() {
+		if n := a.GetName(); n != "" {
+			names = append(names, n)
+		}
+	}
+	return playlist.Track{
+		Path:         uri,
+		Title:        tr.GetName(),
+		Artist:       strings.Join(names, ", "),
+		Album:        tr.GetAlbum().GetName(),
+		Year:         int(tr.GetAlbum().GetDate().GetYear()),
+		AlbumArtURL:  coverFromMetadata(tr.GetAlbum()),
+		DurationSecs: int(tr.GetDuration()) / 1000,
+		TrackNumber:  int(tr.GetNumber()),
+	}
+}
+
+// coverFromMetadata picks the album art the same way the Web API path does,
+// from the cover group the protocol carries instead of a list of URLs.
+func coverFromMetadata(album *metadatapb.Album) string {
+	sources := album.GetCoverGroup().GetImage()
+	if len(sources) == 0 {
+		sources = album.GetCover()
+	}
+	images := make([]spotifyImage, 0, len(sources))
+	for _, img := range sources {
+		if len(img.GetFileId()) == 0 {
 			continue
 		}
-		tracks = append(tracks, trackFromItem(item))
+		width := int(img.GetWidth())
+		if width == 0 {
+			width = metadataImageWidth[img.GetSize()]
+		}
+		images = append(images, spotifyImage{
+			URL:    spotifyImageHost + hex.EncodeToString(img.GetFileId()),
+			Width:  width,
+			Height: int(img.GetHeight()),
+		})
 	}
-	return tracks, nil
+	return pickCoverImage(images)
 }
