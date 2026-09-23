@@ -680,6 +680,14 @@ func (p *SpotifyProvider) TracksPage(playlistID string, offset int) ([]playlist.
 		tracks, err := p.AlbumTracks(albumID)
 		return tracks, 0, err
 	}
+	// A playlist folder is the same trap: its ID is a synthetic
+	// "spotify:folder:..." name, and sent as a playlist ID Spotify answers
+	// 400 "Invalid base62 id". The folder is its playlists played in order,
+	// which Tracks() already assembles, so it arrives as one complete page.
+	if path, ok := isSpotifyFolderID(playlistID); ok {
+		tracks, err := p.folderTracks(path)
+		return tracks, 0, err
+	}
 	p.mu.Lock()
 	var tracks []playlist.Track
 	var cachedTotal int

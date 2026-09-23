@@ -541,3 +541,24 @@ func TestTracksPageServesSavedAlbumsWholly(t *testing.T) {
 		}
 	}
 }
+
+// Playing a playlist folder goes through the paged loader. Its ID is a
+// synthetic "spotify:folder:" name, which must never be sent to Spotify as a
+// playlist ID: that is a 400 "Invalid base62 id" and nothing plays. The stub
+// fails on any path but /v1/me/tracks, so a playlist request fails the test.
+func TestTracksPagePlaysAFolderThroughItsPlaylists(t *testing.T) {
+	calls := 0
+	p := savedTracksProvider(t, 30, &calls)
+	p.folderChildren = map[string][]string{"PAKs": {"YOUR MUSIC"}}
+
+	tracks, next, err := p.TracksPage(spotifyFolderIDPrefix+"PAKs", 0)
+	if err != nil {
+		t.Fatalf("loading the folder: %v", err)
+	}
+	if next != 0 {
+		t.Fatalf("next = %d, want 0: a folder arrives as one complete page", next)
+	}
+	if len(tracks) != 30 {
+		t.Fatalf("got %d tracks, want the 30 from the folder's playlist", len(tracks))
+	}
+}
