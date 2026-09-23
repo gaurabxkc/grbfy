@@ -103,6 +103,19 @@ func restoreJellyfinContext(state resume.State, prov *jellyfin.Provider) ([]play
 }
 
 func run(overrides config.Overrides, positional []string, daemon, visualizer60FPS bool) error {
+	// One player at a time. A second one cannot claim the IPC socket, so its
+	// plugins' remote calls land in the first one instead. Checked before any
+	// audio or Spotify session is set up, which a second player would
+	// otherwise take over from the first.
+	if pid, running := ipc.RunningInstance(ipc.DefaultSocketPath()); running {
+		who := "grbfy is already running"
+		if pid > 0 {
+			who = fmt.Sprintf("grbfy is already running (pid %d)", pid)
+		}
+		return fmt.Errorf("%s. Switch to that window, or quit it first. "+
+			"To control it from here, use `grbfy remote` or `grbfy open`", who)
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("config: %w", err)
