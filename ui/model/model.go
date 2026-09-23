@@ -351,6 +351,7 @@ type Model struct {
 	spotSearch     spotSearchState
 	fileBrowser    fileBrowserState
 	navBrowser     navBrowserState
+	trackRadio     trackRadioState
 	catalogBatch   catalogBatchState
 	ytdlBatch      ytdlBatchState
 	reconnect      reconnectState

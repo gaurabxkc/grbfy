@@ -535,6 +535,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.navBrowser.scroll = 0
 		return m, nil
 
+	case trackRadioMsg:
+		return m, m.applyTrackRadio(msg)
+
 	case navTracksLoadedMsg:
 		if !m.isCurrentNavRequest(msg.gen) {
 			return m, nil

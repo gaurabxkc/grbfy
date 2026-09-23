@@ -127,6 +127,14 @@ type AlbumTrackLoader interface {
 	AlbumTracks(albumID string) ([]playlist.Track, error)
 }
 
+// RadioStarter is implemented by providers that can build a station from a
+// single track: the endless mix a service generates from one song. Spotify
+// calls it song radio, and it is the provider's own recommendation engine
+// rather than anything grbfy computes.
+type RadioStarter interface {
+	TrackRadio(ctx context.Context, trackPath string) ([]playlist.Track, error)
+}
+
 // PlaybackReporter is implemented by providers that accept now-playing and
 // playback-completion reports for tracks they originated.
 type PlaybackReporter interface {
