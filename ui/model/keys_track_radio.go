@@ -95,13 +95,44 @@ func (m *Model) applyTrackRadio(msg trackRadioMsg) tea.Cmd {
 		return nil
 	}
 
+	// The seed leads the station, as in Spotify's own "Go to song radio":
+	// the song you asked about is part of its radio, not replaced by it. A
+	// station can name the seed itself too, so it is dropped from there.
+	tracks := make([]playlist.Track, 0, len(msg.tracks)+1)
+	tracks = append(tracks, msg.seed)
+	for _, t := range msg.tracks {
+		if t.Path != msg.seed.Path {
+			tracks = append(tracks, t)
+		}
+	}
+
+	// Asked about the song already playing: let it play on. It becomes the
+	// first entry and the station follows it, instead of cutting it off to
+	// start the station's first track.
+	playingSeed := false
+	if current, idx := m.currentPlaybackTrack(); idx >= 0 && current.Path == msg.seed.Path &&
+		(m.buffering || m.player.IsPlaying()) {
+		playingSeed = true
+	}
+
 	m.trackRadio.lastStart = time.Now()
 	m.retireTracksPaging()
-	m.replacePlayerPlaylist(msg.tracks)
+	m.replacePlayerPlaylist(tracks)
 	m.activeProviderPlaylistID = ""
 	m.plCursor = 0
 	m.adjustScroll()
-	m.status.Successf(statusTTLDefault, "Radio from %s: %d tracks", trackViewName(msg.seed), len(msg.tracks))
+	m.status.Successf(statusTTLDefault, "Radio from %s: %d tracks", trackViewName(msg.seed), len(tracks)-1)
 	m.notifyAll()
+
+	if playingSeed {
+		// replacePlayerPlaylist detached the playing song. Left detached, it
+		// would be followed by whatever sits at the current position, which is
+		// the seed again. Re-attached at position 0, "next" is the station.
+		m.playlist.SetIndex(0)
+		if seed, idx := m.playlist.Current(); idx == 0 {
+			m.setPlaybackTrack(seed)
+		}
+		return m.rearmPreload()
+	}
 	return m.playCurrentTrack()
 }

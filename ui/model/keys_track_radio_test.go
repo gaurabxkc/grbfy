@@ -48,9 +48,12 @@ func TestTrackRadioReplacesTheQueueWithTheStation(t *testing.T) {
 		t.Fatal("the model does not know a station is starting")
 	}
 
-	m.applyTrackRadio(trackRadioMsg{seed: playlist.Track{Title: "Seed"}, tracks: prov.tracks, gen: m.requests.tracks})
-	if m.playlist.Len() != 2 {
-		t.Fatalf("queue has %d tracks, want the station's 2", m.playlist.Len())
+	m.applyTrackRadio(trackRadioMsg{seed: playlist.Track{Path: "spotify:track:seed", Title: "Seed"}, tracks: prov.tracks, gen: m.requests.tracks})
+	if m.playlist.Len() != 3 {
+		t.Fatalf("queue has %d tracks, want the seed and the station's 2", m.playlist.Len())
+	}
+	if first, _ := m.playlist.Track(0); first.Path != "spotify:track:seed" {
+		t.Fatalf("queue starts with %q, want the seed", first.Path)
 	}
 	if m.trackRadio.starting {
 		t.Fatal("still marked as starting after the station arrived")
@@ -113,5 +116,54 @@ func TestTrackRadioIgnoresAStaleStation(t *testing.T) {
 	m.applyTrackRadio(trackRadioMsg{gen: m.requests.tracks + 5, tracks: []playlist.Track{{Path: "spotify:track:late"}}})
 	if m.playlist.Len() != before {
 		t.Fatal("a stale station replaced the queue")
+	}
+}
+
+// Radio from the song already playing keeps it playing, first in the queue,
+// and the station follows it rather than cutting it off.
+func TestTrackRadioLetsThePlayingSeedPlayOn(t *testing.T) {
+	prov := &radioTestProvider{commandsTestProvider: commandsTestProvider{name: "Spotify"}}
+	m := radioModel(t, prov)
+	engine := m.player.(*playbackFakeEngine)
+	seed, _ := m.playlist.Track(0)
+	m.playlist.SetIndex(0)
+	m.setPlaybackTrack(seed)
+	engine.playing = true
+	playsBefore := len(engine.playCalls)
+
+	m.applyTrackRadio(trackRadioMsg{
+		seed:   seed,
+		tracks: []playlist.Track{{Path: "spotify:track:seed"}, {Path: "spotify:track:a"}, {Path: "spotify:track:b"}},
+		gen:    m.requests.tracks,
+	})
+
+	if len(engine.playCalls) != playsBefore {
+		t.Fatalf("the playing seed was restarted or replaced: plays %v", engine.playCalls[playsBefore:])
+	}
+	if m.playlist.Len() != 3 {
+		t.Fatalf("queue has %d tracks, want the seed and 2 (the station's copy of the seed dropped)", m.playlist.Len())
+	}
+	if _, idx := m.playlist.Current(); idx != 0 {
+		t.Fatalf("current position is %d, want the seed at 0", idx)
+	}
+	if m.playbackDetached {
+		t.Fatal("the seed is still detached, so the next track would replay it")
+	}
+	next, ok := m.playlist.Next()
+	if !ok || next.Path != "spotify:track:a" {
+		t.Fatalf("after the seed comes %q, want the station's first track", next.Path)
+	}
+}
+
+// Radio from a song that is not playing starts with that song.
+func TestTrackRadioPlaysTheSeedFirstWhenItWasNotPlaying(t *testing.T) {
+	prov := &radioTestProvider{commandsTestProvider: commandsTestProvider{name: "Spotify"}}
+	m := radioModel(t, prov)
+	seed, _ := m.playlist.Track(0)
+
+	m.applyTrackRadio(trackRadioMsg{seed: seed, tracks: []playlist.Track{{Path: "spotify:track:a"}}, gen: m.requests.tracks})
+
+	if first, _ := m.playlist.Track(0); first.Path != "spotify:track:seed" {
+		t.Fatalf("queue starts with %q, want the seed", first.Path)
 	}
 }
