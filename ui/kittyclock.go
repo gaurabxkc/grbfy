@@ -647,7 +647,7 @@ func renderImageClock(text string, rows, cols int, fallback string) string {
 	glyphCols := 0
 	for glyphRows > 0 {
 		initClockFont()
-		width := clockDigitAspect * float64(glyphRows) * clockCellAspect
+		width := clockDigitAspect * float64(glyphRows) * clockAspect()
 		gap := max(1.0, width*clockGapFraction)
 		if width*units+gap*gaps <= float64(cols) {
 			glyphCols = int(width)
@@ -704,8 +704,24 @@ func renderImageClock(text string, rows, cols int, fallback string) string {
 }
 
 // clockCellAspect is the terminal's cell height divided by its width, used to
-// keep the digits from being stretched. Set from config at startup.
-var clockCellAspect = 2.0
+// keep the digits from being stretched. Zero means measure it; config sets it
+// only to override the measurement.
+var clockCellAspect = 0.0
+
+// clockAspect is the cell aspect the clock sizes itself by: an explicit
+// setting if there is one, otherwise the terminal's own, measured per frame
+// so a font or zoom change is picked up without a restart. A fixed number
+// in config is what made the clock stretch after a change of font. Falls
+// back to a typical 2 only where the terminal reports no pixel size.
+func clockAspect() float64 {
+	if clockCellAspect > 0 {
+		return clockCellAspect
+	}
+	if a := terminalCellAspect(); a > 0 {
+		return a
+	}
+	return 2.0
+}
 
 // SetClockCellAspect records the terminal's cell aspect. Out-of-range values
 // are ignored rather than producing a badly distorted clock.
