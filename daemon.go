@@ -817,6 +817,27 @@ func (d *daemon) handleLibrary(m ipc.LibraryRequestMsg) {
 		}
 		page, total := daemonPage(tracks, m.Offset, limit, 100)
 		reply(m.Reply, ipc.Response{OK: true, Tracks: trackInfos(page), Total: total})
+	case "provider.radio":
+		starter, ok := entry.Provider.(providerapi.RadioStarter)
+		if !ok {
+			reply(m.Reply, ipc.Response{OK: false, Error: "provider cannot build a radio station"})
+			return
+		}
+		limit := m.Limit
+		if limit <= 0 || limit > 100 {
+			limit = 50
+		}
+		ctx := m.Context
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		tracks, err := starter.TrackRadio(ctx, m.Query)
+		if err != nil {
+			replyError(m.Reply, err)
+			return
+		}
+		page, total := daemonPage(tracks, m.Offset, limit, 100)
+		reply(m.Reply, ipc.Response{OK: true, Tracks: trackInfos(page), Total: total})
 	case "provider.artists":
 		browser, ok := entry.Provider.(providerapi.ArtistBrowser)
 		if !ok {

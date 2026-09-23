@@ -277,7 +277,7 @@ func (d *daemon) executeV2Operation(ctx context.Context, request ipc.V2Request) 
 		return d.v2Reply(ipc.LyricsRequestMsg{})
 	case "history", "history.clear":
 		return d.v2Reply(ipc.HistoryRequestMsg{Op: params.Cmd, Limit: params.Limit})
-	case "provider.list", "provider.playlists", "provider.tracks", "provider.load", "provider.search",
+	case "provider.list", "provider.playlists", "provider.tracks", "provider.load", "provider.search", "provider.radio",
 		"provider.artists", "provider.artist_albums", "provider.albums", "provider.album_tracks", "provider.load_album",
 		"provider.favorite", "provider.catalog",
 		"playlist.create", "playlist.rename", "playlist.delete", "playlist.add", "playlist.add_many", "playlist.replace", "playlist.remove", "playlist.bookmark":

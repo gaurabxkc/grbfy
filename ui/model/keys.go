@@ -705,7 +705,9 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 	case "f":
 		return m.togglePlaylistStar()
 
-	case "W":
+	case "ctrl+y":
+		// Not W: the bundled sleep-timer plugin owns W, and a core key takes
+		// it before any plugin sees it. Every free uppercase letter is gone.
 		return m.startTrackRadio()
 
 	case "n":

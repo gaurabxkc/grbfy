@@ -430,6 +430,26 @@ func (m *Model) handleIPCLibrary(request ipc.LibraryRequestMsg) tea.Cmd {
 			}
 			return nil
 		}
+	case "provider.radio":
+		starter, ok := entry.Provider.(provider.RadioStarter)
+		if !ok {
+			request.Reply <- ipc.Response{OK: false, Error: "provider cannot build a radio station"}
+			return nil
+		}
+		return func() tea.Msg {
+			limit := request.Limit
+			if limit <= 0 || limit > 100 {
+				limit = 50
+			}
+			tracks, err := starter.TrackRadio(requestContext(request.Context), request.Query)
+			if err != nil {
+				request.Reply <- ipcResponseError(err)
+			} else {
+				page, total := ipcPage(tracks, request.Offset, limit, 100)
+				request.Reply <- ipc.Response{OK: true, Tracks: ipcTrackInfos(page), Total: total}
+			}
+			return nil
+		}
 	case "provider.artists":
 		browser, ok := entry.Provider.(provider.ArtistBrowser)
 		if !ok {
