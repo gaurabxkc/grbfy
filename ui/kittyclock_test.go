@@ -605,10 +605,16 @@ func TestClockDigitsShareOneStrokeWeight(t *testing.T) {
 	if ref == 0 {
 		t.Fatal("no ink on 0; the font did not load")
 	}
-	for _, ch := range "147" {
+	for _, ch := range "47" {
 		got := strokeAt(ch)
 		if diff := float64(got-ref) / float64(ref); diff > 0.10 || diff < -0.10 {
 			t.Errorf("%c stroke is %dpx against %dpx for 0 (%+.0f%%); digits should share one weight", ch, got, ref, diff*100)
 		}
+	}
+	// The 1 is deliberately a little heavier (clockOpticalWeight), but
+	// nowhere near the +59% the old per-glyph stretch gave it.
+	one := strokeAt('1')
+	if diff := float64(one-ref) / float64(ref); diff < 0.03 || diff > 0.20 {
+		t.Errorf("1 stroke is %dpx against %dpx for 0 (%+.0f%%); want a slight optical boost of 3-20%%", one, ref, diff*100)
 	}
 }

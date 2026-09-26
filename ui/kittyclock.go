@@ -263,13 +263,26 @@ func drawClockGlyph(ch rune, w, h int) *image.RGBA {
 	target := img.Bounds()
 	if _, refAdv, ok := face.GlyphBounds('0'); ok && refAdv > 0 {
 		digitBox := float64(w) / glyphAdvance(ch)
-		scale := digitBox / (float64(refAdv) / 64)
+		scale := digitBox / (float64(refAdv) / 64) * clockOpticalWeight(ch)
 		tw := min(w, max(1, int(float64(natural)*scale+0.5)))
 		x0 := (w - tw) / 2
 		target = image.Rect(x0, 0, x0+tw, h)
 	}
 	draw.ApproxBiLinear.Scale(img, target, tmp, tmp.Bounds(), draw.Over, nil)
 	return img
+}
+
+// clockOpticalWeight widens a glyph slightly beyond the shared scale where
+// equal strokes do not look equal. The "1" is a single straight stem, while
+// the round digits' strokes swell through their curves (62 px on the straight
+// of a 9, up to 78 px round its bowl, measured on screen), so at the same
+// nominal weight the 1 reads as the thinnest digit. Ten percent brings it to
+// about the round digits' average, the correction a type designer would make.
+func clockOpticalWeight(ch rune) float64 {
+	if ch == '1' {
+		return 1.10
+	}
+	return 1
 }
 
 // ClockGraphicsAvailable reports whether this terminal can draw the image
