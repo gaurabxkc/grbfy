@@ -243,9 +243,9 @@ func drawClockGlyph(ch rune, w, h int) *image.RGBA {
 	inkBottom := float64(bounds.Max.Y) / 64
 	baseline := (float64(h)-(inkBottom-inkTop))/2 - inkTop
 
-	// Drawn at its natural width first, then squeezed into the target width.
-	// Type cannot be condensed by drawing it into a narrower box — it would
-	// simply overflow — so it is rendered and then resampled.
+	// Drawn at its natural width first, then resampled horizontally. Type
+	// cannot be condensed by drawing it into a narrower box (it would simply
+	// overflow), so it is rendered and then scaled.
 	tmp := image.NewRGBA(image.Rect(0, 0, natural, h))
 	d := &font.Drawer{
 		Dst:  tmp,
@@ -255,7 +255,20 @@ func drawClockGlyph(ch rune, w, h int) *image.RGBA {
 	}
 	d.DrawString(string(ch))
 
-	draw.ApproxBiLinear.Scale(img, img.Bounds(), tmp, tmp.Bounds(), draw.Over, nil)
+	// Every glyph gets the same horizontal scale, the one that fits a "0" to
+	// a digit box, and is centred in its own box. Stretching each glyph to
+	// fill its box instead made Barlow's "1", naturally about 60% as wide as
+	// the other digits, 1.6 times wider than drawn, strokes and all, so it
+	// read as bolder than the rest; "4" came out squeezed and "7" stretched.
+	target := img.Bounds()
+	if _, refAdv, ok := face.GlyphBounds('0'); ok && refAdv > 0 {
+		digitBox := float64(w) / glyphAdvance(ch)
+		scale := digitBox / (float64(refAdv) / 64)
+		tw := min(w, max(1, int(float64(natural)*scale+0.5)))
+		x0 := (w - tw) / 2
+		target = image.Rect(x0, 0, x0+tw, h)
+	}
+	draw.ApproxBiLinear.Scale(img, target, tmp, tmp.Bounds(), draw.Over, nil)
 	return img
 }
 

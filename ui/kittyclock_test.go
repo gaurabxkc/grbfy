@@ -578,3 +578,37 @@ func TestThemeChangeReplacesPlacements(t *testing.T) {
 		t.Error("glyphs were re-sent (deleting their placements) but not placed again")
 	}
 }
+
+// Every digit gets the same horizontal scale. Stretching each glyph to fill
+// its box made Barlow's "1", naturally about 60% as wide as the others, draw
+// with a stroke roughly 1.6 times as heavy, so it read as bold.
+func TestClockDigitsShareOneStrokeWeight(t *testing.T) {
+	initClockFont()
+	const h = 400
+	w := clockGlyphW * h / clockGlyphH
+
+	strokeAt := func(ch rune) int {
+		img := drawClockGlyph(ch, w, h)
+		run, started := 0, false
+		for x := 0; x < w; x++ {
+			if img.RGBAAt(x, h/2).A > 128 {
+				run++
+				started = true
+			} else if started {
+				break
+			}
+		}
+		return run
+	}
+
+	ref := strokeAt('0')
+	if ref == 0 {
+		t.Fatal("no ink on 0; the font did not load")
+	}
+	for _, ch := range "147" {
+		got := strokeAt(ch)
+		if diff := float64(got-ref) / float64(ref); diff > 0.10 || diff < -0.10 {
+			t.Errorf("%c stroke is %dpx against %dpx for 0 (%+.0f%%); digits should share one weight", ch, got, ref, diff*100)
+		}
+	}
+}
