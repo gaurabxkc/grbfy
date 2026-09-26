@@ -1065,10 +1065,21 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 
 func (m *Model) exitFullVisualizer() {
 	m.fullVis = false
+	// The up-next list belongs to this screen; coming back should show the
+	// visualizer, not a list left open last time.
+	m.fullVisQueue = false
 	m.recomputeLayout()
 }
 
 func (m *Model) handleFullVisualizerKey(msg tea.KeyPressMsg) tea.Cmd {
+	// With the up-next list open, keys act on the list first, the same as in
+	// the U overlay outside, so Esc closes the list before it closes the
+	// screen.
+	if m.fullVisQueue {
+		if cmd, handled := m.handleFullVisQueueKey(msg); handled {
+			return cmd
+		}
+	}
 	switch msg.String() {
 	case "q":
 		return m.quit()
@@ -1088,7 +1099,8 @@ func (m *Model) handleFullVisualizerKey(msg tea.KeyPressMsg) tea.Cmd {
 		// Hide the episode name so the full-screen visualizer can be put on a
 		// shared screen without naming what is playing.
 		m.hideTrackInfo = !m.hideTrackInfo
-	case "u":
+	case "U":
+		// U, the same key as the up-next list everywhere else.
 		m.toggleFullVisQueue()
 	case "ctrl+k", "?":
 		m.exitFullVisualizer()

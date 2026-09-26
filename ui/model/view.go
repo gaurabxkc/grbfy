@@ -578,7 +578,7 @@ func (m Model) renderFullVisualizer() string {
 		m.fullVisSpectrumOrQueue(),
 		m.renderSeekBar(),
 		"",
-		helpKey("V", "Exit ") + helpKey("v", "Mode:"+m.vis.ModeName()+" ") + m.fullVisQueueHelp() + helpKey("Spc", "▶❚❚ ") + helpKey("<>", "Trk ") + helpKey("+-", "Vol ") + helpKey("t", "Title ") + helpKey("?", "Keys"),
+		m.fullVisHelpLine(),
 	}
 
 	return strings.Join(sections, "\n")

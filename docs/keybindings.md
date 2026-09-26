@@ -111,7 +111,7 @@ The Metadata shortcut is inactive while a text input is active.
 | `v` | Cycle visualizer |
 | `Ctrl+V` | Pick visualizer from a list (live preview) |
 | `Cover` mode | The playing track as a now-playing screen: album art, title, artist, album, a progress bar tinted with the cover's own colour, and what plays next. Needs a terminal with the kitty graphics protocol; elsewhere it shows the track's name. |
-| `V` | Full screen visualizer. Inside it, `u` toggles the up-next list in place of the spectrum, `v` cycles modes, `<`/`>` change track, `+`/`-` change volume, `t` hides the episode name, leaving only the bracketed source, and `Esc` `b` `V` exit. |
+| `V` | Full screen visualizer. Inside it, `U` opens the up-next list in place of the spectrum, with the same keys as Up Next outside (move, `Enter` to play, `J`/`K` to reorder, `d` to remove); `Esc` closes the list first, then the screen. `v` cycles modes, `<`/`>` change track, `+`/`-` change volume, `t` hides the episode name, leaving only the bracketed source, and `Esc` `b` `V` exit. |
 | `Ctrl+H` | Toggle album headers |
 | `Ctrl+G` | Toggle the key-binding hint bar (remembered in `hide_help_bar`) |
 | `Ctrl+B` | Open/close the settings pane (remembered in `hide_settings_pane`) |
